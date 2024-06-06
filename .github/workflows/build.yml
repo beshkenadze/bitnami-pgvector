@@ -30,8 +30,6 @@ jobs:
         uses: docker/metadata-action@v2
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-      - name: echo BITNAMI_NAME name
-        run: echo ${{ env.BITNAMI_NAME }}
       - name: Build and Push Versioned Docker Image
         id: build-and-push
         uses: docker/build-push-action@v2

@@ -1,3 +1,6 @@
+ARG BITNAMI_NAME
+ARG PGVECTOR_NAME
+
 FROM pgvector/pgvector:$PGVECTOR_NAME AS builder
 
 FROM bitnami/postgresql:$BITNAMI_NAME
