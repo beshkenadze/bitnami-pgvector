@@ -26,5 +26,8 @@ echo "PGVECTOR_DIGEST=${PGVECTOR_DIGEST:7:5}"
 
 LATEST_TAG=$bitnami-pgvector:pg$PG_MAJOR_VERSION-{BITNAMI_DIGEST:7:5}-${PGVECTOR_DIGEST:7:5}
 
-curl --head --fail -H "Authorization: Bearer $GITHUB_TOKEN" https://ghcr.io/v2/bat-bs/bitnami-pgvector/manifests/$LATEST_TAG
+if curl --head --fail -H "Authorization: Bearer $GITHUB_TOKEN" https://ghcr.io/v2/bat-bs/bitnami-pgvector/manifests/$LATEST_TAG ; then
+  echo "latest Tag found in Registry, no further build is required"
+  exit 1
+fi
 # push with pg16 and pg16-digest-digest
