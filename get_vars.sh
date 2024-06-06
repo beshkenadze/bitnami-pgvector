@@ -20,9 +20,15 @@ echo "PGVector - Name: $PGVECTOR_NAME, Digest: ${PGVECTOR_DIGEST:7:5}"
 TAG_IDENTIFIER=pg$PG_MAJOR_VERSION-${BITNAMI_DIGEST:7:5}-${PGVECTOR_DIGEST:7:5}
 echo "Identifier will be $TAG_IDENTIFIER"
 
-if curl --head --fail -H "Authorization: Bearer $GITHUB_TOKEN" -X GET https://ghcr.io/v2/bat-bs/bitnami-pgvector/manifests/$TAG_IDENTIFIER ; then
+response_code=$(curl --head --fail -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $GITHUB_TOKEN" -X GET https://ghcr.io/v2/bat-bs/bitnami-pgvector/manifests/$TAG_IDENTIFIER)
+if [ $response_code -eq 200 ]; then
   echo "latest Tag found in Registry, no further build is required"
   exit 1
+fi
+elif [ $response_code -eq 404 ]; then
+  echo "Tag not found in registry. The image will be build."
+else
+  echo "Error: " + $response_code + " please check the script"
 fi
 
 # export vars for later jobs
