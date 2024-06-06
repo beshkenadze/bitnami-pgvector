@@ -4,6 +4,10 @@ on:
   push:
     branches:
     - "main"
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PG_MAJOR_VERSION: 16
 
 jobs:
   # As the pgvecto-rs module is needed in the Immich Postgres, a custom Bitnami Image Build is implemented.
