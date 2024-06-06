@@ -4,8 +4,6 @@ on:
   push:
     branches:
     - "main"
-permissions:
-  contents: read
 
 jobs:
   # As the pgvecto-rs module is needed in the Immich Postgres, a custom Bitnami Image Build is implemented.
