@@ -24,7 +24,6 @@ response_code=$(curl --head --fail -o /dev/null -w "%{http_code}" -H "Authorizat
 if [ $response_code -eq 200 ]; then
   echo "latest Tag found in Registry, no further build is required"
   exit 1
-fi
 elif [ $response_code -eq 404 ]; then
   echo "Tag not found in registry. The image will be build."
 else
