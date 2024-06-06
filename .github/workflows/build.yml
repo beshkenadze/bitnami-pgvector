@@ -8,6 +8,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   PG_MAJOR_VERSION: 16
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   # As the pgvecto-rs module is needed in the Immich Postgres, a custom Bitnami Image Build is implemented.
