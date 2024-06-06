@@ -1,6 +1,10 @@
 on: 
   schedule:
     - cron: "0 20 * * *"
+  push:
+    branches:
+    - "main"
+
 jobs:
   # As the pgvecto-rs module is needed in the Immich Postgres, a custom Bitnami Image Build is implemented.
   build-postgres:
