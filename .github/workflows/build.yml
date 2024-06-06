@@ -40,7 +40,7 @@ jobs:
         with:
           push: true
           file: ./Dockerfile
-          tags: ${{ env.REGISTRY }}/${{ env.TAG_IDENTIFIER }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pg${{ env.PG_MAJOR_VERSION }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.TAG_IDENTIFIER }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pg${{ env.PG_MAJOR_VERSION }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             BITNAMI_NAME=${{ env.BITNAMI_NAME }}

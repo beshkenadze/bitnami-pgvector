@@ -17,10 +17,10 @@ PGVECTOR_NAME=$(echo -n $PGVECTOR_REG_CONTENT | jq -r '.results[] | select(.name
 PGVECTOR_DIGEST=$(echo -n $PGVECTOR_REG_CONTENT | jq -r '.results[] | select(.name | test(".*\\..*\\..*-pg16")) | .digest' | head -n 1)
 echo "PGVector - Name: $PGVECTOR_NAME, Digest: ${PGVECTOR_DIGEST:7:5}"
 
-TAG_IDENTIFIER=$IMAGE_NAME:pg$PG_MAJOR_VERSION-${BITNAMI_DIGEST:7:5}-${PGVECTOR_DIGEST:7:5}
+TAG_IDENTIFIER=pg$PG_MAJOR_VERSION-${BITNAMI_DIGEST:7:5}-${PGVECTOR_DIGEST:7:5}
 echo "Identifier will be $TAG_IDENTIFIER"
 
-if curl --head --fail -H "Authorization: Bearer $GITHUB_TOKEN" https://ghcr.io/v2/bat-bs/bitnami-pgvector/manifests/$TAG_IDENTIFIER ; then
+if curl --head --fail -H "Authorization: Bearer $GITHUB_TOKEN" -X GET https://ghcr.io/v2/bat-bs/bitnami-pgvector/manifests/$TAG_IDENTIFIER ; then
   echo "latest Tag found in Registry, no further build is required"
   exit 1
 fi
