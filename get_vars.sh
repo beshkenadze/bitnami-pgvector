@@ -4,7 +4,6 @@
 wget https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
 mv jq-linux-amd64 jq
 chmod +x jq
-GITHUB_ENV=g
 PG_MAJOR_VERSION=16
 BITNAMI_NAME_REGEXP="^$PG_MAJOR_VERSION.*debian"
 BITNAMI_POSTGRES_REG_CONTENT=$(wget -q -O - "https://hub.docker.com/v2/namespaces/bitnami/repositories/postgresql/tags?page_size=20")
