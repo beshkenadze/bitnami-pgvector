@@ -29,6 +29,7 @@ elif [ $response_code -eq 404 ]; then
   echo "Tag not found in registry. The image will be build."
 else
   echo "Error: " + $response_code + " please check the script"
+  exit 1
 fi
 
 # export vars for later jobs
