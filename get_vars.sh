@@ -20,15 +20,11 @@ echo "PGVector - Name: $PGVECTOR_NAME, Digest: ${PGVECTOR_DIGEST:7:5}"
 TAG_IDENTIFIER=pg$PG_MAJOR_VERSION-${BITNAMI_DIGEST:7:5}-${PGVECTOR_DIGEST:7:5}
 echo "Identifier will be $TAG_IDENTIFIER"
 
-response_code=$(curl --head --fail -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $GITHUB_TOKEN" -X GET https://ghcr.io/v2/bat-bs/bitnami-pgvector/manifests/$TAG_IDENTIFIER)
-if [ $response_code -eq 200 ]; then
-  echo "latest Tag found in Registry, no further build is required"
-  exit 1
-elif [ $response_code -eq 404 ]; then
+response_code=$(skopeo list-tags --registry-token ${GH_TOKEN} docker://ghcr.io/bat-bs/${IMAGE_NAME} | grep $TAG_IDENTIFIER )
+if [ -z "${response_code}" ]; then
   echo "Tag not found in registry. The image will be build."
 else
-  echo "Error: " + $response_code + " please check the script"
-  exit 1
+  echo "Tag found in registry. The image will not be build."
 fi
 
 # export vars for later jobs
