@@ -35,8 +35,9 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          file: ./images/pgvecto-bitnami/Dockerfile
-          tags: ${{ env.REGISTRY }}/${{ env.TAG_IDENTIFIER }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pg16, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          file: ./Dockerfile
+          tags: ${{ env.REGISTRY }}/${{ env.TAG_IDENTIFIER }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pg${{ env.PG_MAJOR_VERSION }}, ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            BITNAMI_TAG=${{ env.BITNAMI_TAG }}
+            BITNAMI_NAME=${{ env.BITNAMI_NAME }}
+            PGVECTOR_NAME=${{ env.PGVECTOR_NAME }}
