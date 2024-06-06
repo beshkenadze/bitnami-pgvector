@@ -6,20 +6,16 @@ on:
     - "main"
 permissions:
   contents: read
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-  PG_MAJOR_VERSION: 16
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  REGISTRY_READ_HQ: ${{ secrets.REGISTRY_READ_HQ }}
 
 jobs:
   # As the pgvecto-rs module is needed in the Immich Postgres, a custom Bitnami Image Build is implemented.
   build-postgres:
-    
     env:
       REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository }}/pg-bitnami-vecto-rs
+      IMAGE_NAME: ${{ github.repository }}
+      PG_MAJOR_VERSION: 16
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REGISTRY_READ_HQ: ${{ secrets.REGISTRY_READ_HQ }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
