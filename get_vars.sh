@@ -20,7 +20,7 @@ echo "PGVector - Name: $PGVECTOR_NAME, Digest: ${PGVECTOR_DIGEST:7:5}"
 TAG_IDENTIFIER=pg$PG_MAJOR_VERSION-${BITNAMI_DIGEST:7:5}-${PGVECTOR_DIGEST:7:5}
 echo "Identifier will be $TAG_IDENTIFIER"
 
-if [ -z "$(skopeo list-tags --registry-token $(echo -n $GITHUB_TOKEN | base64) docker://ghcr.io/bat-bs/${IMAGE_NAME} | grep $TAG_IDENTIFIER)" ]; then
+if [ -z "$( curl -H "Authorization: Bearer $(echo -n $GITHUB_TOKEN | base64)" "https://ghcr.io/v2/bat-bs/bitnami-pgvector/tags/list" | grep -i $TAG_IDENTIFIER)" ]; then
   echo "Tag not found in registry. The image will be build."
 else
   echo "Tag found in registry. The image will not be build."
