@@ -1,2 +1,4 @@
 g
 jq
+.secrets
+logs.txt
