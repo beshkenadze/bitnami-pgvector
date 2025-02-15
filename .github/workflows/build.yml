@@ -4,13 +4,20 @@ on:
   push:
     branches:
       - "main"
+  workflow_dispatch:
+    inputs:
+      pg_version:
+        description: "PostgreSQL major version"
+        required: true
+        default: "16"
+        type: string
 
 jobs:
   build-postgres:
     env:
       REGISTRY: ghcr.io
       REPO_NAME: ${{ github.repository }}
-      PG_MAJOR_VERSION: 16
+      PG_MAJOR_VERSION: ${{ inputs.pg_version || '16' }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: ubuntu-latest
     permissions:

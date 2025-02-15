@@ -68,7 +68,25 @@ After connecting to your database:
 CREATE EXTENSION vector;
 ```
 
-## Building Locally
+## Building
+
+### Automated Builds
+
+The image is automatically built:
+
+- Every day at 20:00 UTC
+- On every push to the main branch
+- Manually through GitHub Actions interface
+
+To trigger a manual build:
+
+1. Go to the "Actions" tab in your GitHub repository
+2. Select the "Build Postgres" workflow
+3. Click "Run workflow"
+4. (Optional) Change the PostgreSQL version
+5. Click "Run workflow"
+
+### Building Locally
 
 1. Clone the repository:
 
