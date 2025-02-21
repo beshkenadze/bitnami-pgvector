@@ -1,4 +1,6 @@
 #!/bin/bash
+# Exit on error
+set -e
 
 # Get repo name from environment or use default
 REPO_NAME=${REPO_NAME:-"beshkenadze/bitnami-pgvector"}
@@ -27,16 +29,37 @@ if [ ! -f "./jq" ]; then
     chmod +x jq
 fi
 
-BITNAMI_NAME_REGEXP="^$PG_MAJOR_VERSION.*debian"
-echo $BITNAMI_NAME_REGEXP
+# Fetch Bitnami PostgreSQL tags
 BITNAMI_POSTGRES_REG_CONTENT=$(wget -q -O - "https://hub.docker.com/v2/namespaces/bitnami/repositories/postgresql/tags?page_size=100")
-BITNAMI_NAME=$(echo -n $BITNAMI_POSTGRES_REG_CONTENT | jq -r --arg BITNAMI_NAME_REGEXP $BITNAMI_NAME_REGEXP '.results[] | select(.name | test($BITNAMI_NAME_REGEXP)) | .name' | head -n 1)
-BITNAMI_DIGEST=$(echo -n $BITNAMI_POSTGRES_REG_CONTENT | jq -r --arg BITNAMI_NAME_REGEXP $BITNAMI_NAME_REGEXP '.results[] | select(.name | test($BITNAMI_NAME_REGEXP)) | .digest' | head -n 1)
+if [ -z "$BITNAMI_POSTGRES_REG_CONTENT" ]; then
+    echo "Error: Failed to fetch Bitnami PostgreSQL tags"
+    exit 1
+fi
+
+# Get latest Debian-based PostgreSQL 16 tag
+BITNAMI_NAME=$(echo -n "$BITNAMI_POSTGRES_REG_CONTENT" | ./jq -r --arg ver "$PG_MAJOR_VERSION" '.results[] | select(.name | contains($ver) and contains("debian")) | .name' | head -n 1)
+if [ -z "$BITNAMI_NAME" ]; then
+    echo "Error: Could not find a matching Bitnami PostgreSQL tag"
+    exit 1
+fi
+
+BITNAMI_DIGEST=$(echo -n "$BITNAMI_POSTGRES_REG_CONTENT" | ./jq -r --arg name "$BITNAMI_NAME" '.results[] | select(.name == $name) | .digest' | head -n 1)
 echo "Bitnami - Name: $BITNAMI_NAME, Digest: ${BITNAMI_DIGEST:7:5}"
 
+# Fetch PGVector tags
 PGVECTOR_REG_CONTENT=$(wget -q -O - "https://hub.docker.com/v2/namespaces/pgvector/repositories/pgvector/tags?page_size=100")
-PGVECTOR_NAME=$(echo -n $PGVECTOR_REG_CONTENT | jq -r '.results[] | select(.name | test(".*\\..*\\..*-pg16")) | .name' | head -n 1)
-PGVECTOR_DIGEST=$(echo -n $PGVECTOR_REG_CONTENT | jq -r '.results[] | select(.name | test(".*\\..*\\..*-pg16")) | .digest' | head -n 1)
+if [ -z "$PGVECTOR_REG_CONTENT" ]; then
+    echo "Error: Failed to fetch PGVector tags"
+    exit 1
+fi
+
+PGVECTOR_NAME=$(echo -n "$PGVECTOR_REG_CONTENT" | ./jq -r '.results[] | select(.name | test(".*\\..*\\..*-pg16")) | .name' | head -n 1)
+if [ -z "$PGVECTOR_NAME" ]; then
+    echo "Error: Could not find a matching PGVector tag"
+    exit 1
+fi
+
+PGVECTOR_DIGEST=$(echo -n "$PGVECTOR_REG_CONTENT" | ./jq -r --arg name "$PGVECTOR_NAME" '.results[] | select(.name == $name) | .digest' | head -n 1)
 echo "PGVector - Name: $PGVECTOR_NAME, Digest: ${PGVECTOR_DIGEST:7:5}"
 
 TAG_IDENTIFIER=pg$PG_MAJOR_VERSION-${BITNAMI_DIGEST:7:5}-${PGVECTOR_DIGEST:7:5}
@@ -51,7 +74,7 @@ else
     TAGS_CHECK=$(curl -s -H "Authorization: Bearer $(echo -n $GITHUB_TOKEN | base64)" "https://ghcr.io/v2/${REPO_NAME}/tags/list" || echo '{"tags":[]}')
 fi
 
-if echo "$TAGS_CHECK" | jq -e --arg tag "$TAG_IDENTIFIER" '.tags | index($tag)' > /dev/null; then
+if echo "$TAGS_CHECK" | ./jq -e --arg tag "$TAG_IDENTIFIER" '.tags | index($tag)' > /dev/null; then
     echo "Tag found in registry. The image will not be build."
     exit 1
 else
