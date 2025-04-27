@@ -20,17 +20,19 @@ jobs:
       # Label used to access the service container
       postgres:
         # Docker Hub image
-        image: postgres
+        image: ghcr.io/beshkenadze/bitnami-pgvector:pg16-233f3-5f411
         # Provide the password for postgres
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRESQL_USERNAME: testuser
+          POSTGRESQL_POSTGRES_PASSWORD: rootpassword
+          POSTGRESQL_PASSWORD: testpassword
+          POSTGRESQL_DATABASE: testdb
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
 
     steps:
       - name: Checkout repository
@@ -41,31 +43,18 @@ jobs:
         with:
           node-version: '20'
 
-      # # Install tools needed for wait-for script and potentially other steps
-      # - name: Install wget and netcat
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y wget netcat-traditional
-
       - name: Install test dependencies
         working-directory: ./tests
         run: npm install
-      
-      # - name: Wait for PostgreSQL to be ready
-      #   env:
-      #     PGPORT: 5432 # Port mapped from service to runner
-      #     PGHOST: localhost # Service is accessible via localhost on the runner
-      #     WAIT_FOR_VERSION: 4df3f9262d84cab0039c07bf861045fbb3c20ab7 # v2.2.3 of wait-for script
-      #   run: |
-      #     wget -qO- https://raw.githubusercontent.com/eficode/wait-for/$WAIT_FOR_VERSION/wait-for | sh -s -- $PGHOST:$PGPORT -t 60 -- echo "PostgreSQL is up and ready!"
-
+    
       - name: Run Vector Test
         working-directory: ./tests
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
           PGPORT: 5432
-          PGUSER: postgres # Corresponds to POSTGRESQL_USERNAME in service env
-          PGPASSWORD: testpassword # Corresponds to POSTGRESQL_PASSWORD in service env
-          PGDATABASE: postgres # Corresponds to POSTGRESQL_DATABASE in service env
+          # To use vector extension, we need to use root user
+          PGUSER: postgres
+          PGPASSWORD: rootpassword 
+          PGDATABASE: testdb
         run: node vector_test.js 
