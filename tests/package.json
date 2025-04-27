@@ -5,7 +5,8 @@
   "main": "vector_test.js",
   "type": "module",
   "scripts": {
-    "test": "node pgtest.js"
+    "test": "node pgtest.js",
+    "test:vector": "node vector_test.js"
   },
   "author": "",
   "license": "ISC",

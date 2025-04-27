@@ -51,20 +51,20 @@ jobs:
         id: vars
         run: |
           ./get_vars.sh
-          echo "FULL_IMAGE_TAG=${FULL_IMAGE_TAG}" >> $GITHUB_OUTPUT
-          echo "TAG_SHORT=${TAG_SHORT}" >> $GITHUB_OUTPUT
-          echo "TAG_FULL_PGVECTOR_POSTGRES=${TAG_FULL_PGVECTOR_POSTGRES}" >> $GITHUB_OUTPUT
 
       - name: Check if image already exists
         id: check_image
         run: |
           TAG_TO_CHECK="${{ steps.vars.outputs.FULL_IMAGE_TAG }}"
           echo "Checking for tag: ${TAG_TO_CHECK}"
-          if docker manifest inspect "${TAG_TO_CHECK}" > /dev/null 2>&1; then
-            echo "Image ${TAG_TO_CHECK} already exists."
+          # Try to pull the image first to ensure we have the latest manifest
+          if docker pull "${TAG_TO_CHECK}"; then
+            echo "Image ${TAG_TO_CHECK} exists in the registry."
+            # Optional: Verify with manifest inspect if needed, though pull success implies existence
+            docker manifest inspect "${TAG_TO_CHECK}" > /dev/null 2>&1
             echo "exists=true" >> $GITHUB_OUTPUT
           else
-            echo "Image ${TAG_TO_CHECK} does not exist. Proceeding with build."
+            echo "Image ${TAG_TO_CHECK} does not exist in the registry or pull failed. Proceeding with build."
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
@@ -76,8 +76,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
-            BITNAMI_NAME=${{ env.BITNAMI_NAME }}
-            PGVECTOR_NAME=${{ env.PGVECTOR_NAME }}
+            BITNAMI_NAME=${{ steps.vars.outputs.BITNAMI_NAME }}
+            PGVECTOR_NAME=${{ steps.vars.outputs.PGVECTOR_NAME }}
             PG_MAJOR_VERSION=${{ matrix.pg_version }}
           tags: |
             ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
@@ -87,3 +87,72 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_NAME }},push-by-digest=false,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+  test-runner-job:
+    needs: build-postgres
+
+    strategy:
+      fail-fast: false # Optional: prevent job cancellations if one matrix job fails
+      matrix:
+        pg_version: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.pg_version != '' && fromJson(format('["{0}"]', github.event.inputs.pg_version)) || fromJson('["16","17"]') }}
+    # Containers must run in Linux based operating systems
+    runs-on: ubuntu-latest
+    # Docker Hub image that `container-job` executes in
+    container: node:20-bookworm-slim
+      
+    # Service containers to run with `container-job`
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image - Dynamically select based on the matrix pg_version
+        image: ${{ needs.build-postgres.outputs.FULL_IMAGE_TAG }}
+        # Provide the password for postgres
+        ports:
+          - 5432:5432
+        env:
+          POSTGRESQL_USERNAME: testuser
+          POSTGRESQL_POSTGRES_PASSWORD: rootpassword
+          POSTGRESQL_PASSWORD: testpassword
+          POSTGRESQL_DATABASE: testdb
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd 'pg_isready -U "postgres" -h 0.0.0.0 -p 5432'
+          --health-interval 30s
+          --health-timeout 10s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install test dependencies
+        working-directory: ./tests
+        run: npm install
+
+      - name: Run User Test
+        working-directory: ./tests
+        env:
+          # Use standard PostgreSQL environment variables for connection within the test script
+          PGHOST: postgres
+          PGPORT: 5432
+          # To use vector extension, we need to use root user
+          PGUSER: testuser
+          PGPASSWORD: testpassword 
+          PGDATABASE: testdb
+        run: npm run test 
+    
+      - name: Run Vector Test
+        working-directory: ./tests
+        env:
+          # Use standard PostgreSQL environment variables for connection within the test script
+          PGHOST: postgres
+          PGPORT: 5432
+          # To use vector extension, we need to use root user
+          PGUSER: postgres
+          PGPASSWORD: rootpassword 
+          PGDATABASE: testdb
+        run: npm run test:vector        
