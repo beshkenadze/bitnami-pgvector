@@ -116,7 +116,7 @@ jobs:
       - name: Install wget
         run: |
           apt-get update
-          apt-get install -y wget
+          apt-get install -y wget netcat
 
       - name: Install test dependencies
         working-directory: ./tests
