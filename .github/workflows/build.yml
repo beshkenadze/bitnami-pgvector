@@ -31,6 +31,7 @@ jobs:
     outputs:
       pg_version: ${{ matrix.pg_version }}
       FULL_IMAGE_TAG: ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
+      image_exists: ${{ steps.check_image.outputs.exists }}
     steps:
       - uses: actions/checkout@v3
 
@@ -89,6 +90,8 @@ jobs:
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_NAME }},push-by-digest=false,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
   test-runner-job:
     needs: build-postgres
+    # Run this job only if the corresponding build job built an image
+    if: needs.build-postgres.outputs.image_exists == 'false' || (github.event_name == 'workflow_dispatch' && github.event.inputs.pg_version == needs.build-postgres.outputs.pg_version)
 
     strategy:
       fail-fast: false # Optional: prevent job cancellations if one matrix job fails

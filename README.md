@@ -1,5 +1,7 @@
 # Bitnami PostgreSQL with pgvector
 
+[![GitHub Workflow Status](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/build.yml/badge.svg)](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/build.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![PostgreSQL Versions](https://img.shields.io/badge/PostgreSQL-16%20%7C%2017-blue.svg)](https://www.postgresql.org/) [![GHCR latest](https://img.shields.io/badge/GHCR-latest-blue)](https://github.com/beshkenadze/bitnami-pgvector/pkgs/container/bitnami-pgvector)
+
 This project provides a Docker image that combines Bitnami's PostgreSQL with the pgvector extension for vector similarity search capabilities.
 
 ## Quick Install
