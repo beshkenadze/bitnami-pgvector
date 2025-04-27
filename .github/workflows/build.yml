@@ -125,7 +125,7 @@ jobs:
       - name: Wait for PostgreSQL to be ready
         env:
           PGPORT: 5432
-          PGHOST: postgres
+          PGHOST: localhost
         run: |
           wget -qO- https://raw.githubusercontent.com/eficode/wait-for/$WAIT_FOR_VERSION/wait-for | sh -s -- $PGHOST:$PGPORT -t 60 -- echo "PostgreSQL is up and ready!"
 
