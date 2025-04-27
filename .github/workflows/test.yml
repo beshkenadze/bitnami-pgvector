@@ -1,0 +1,68 @@
+name: Running Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  Test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # Use the latest image pushed to the registry for this repository
+        # Ensure an image with the 'latest' tag exists
+        image: ghcr.io/${{ github.repository }}:latest 
+        env:
+          # Use Bitnami PostgreSQL environment variables
+          POSTGRESQL_USERNAME: postgres
+          POSTGRESQL_PASSWORD: testpassword
+          POSTGRESQL_DATABASE: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # Install tools needed for wait-for script and potentially other steps
+      - name: Install wget and netcat
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget netcat-traditional
+
+      - name: Install test dependencies
+        working-directory: ./tests
+        run: npm install
+      
+      - name: Wait for PostgreSQL to be ready
+        env:
+          PGPORT: 5432 # Port mapped from service to runner
+          PGHOST: localhost # Service is accessible via localhost on the runner
+          WAIT_FOR_VERSION: 4df3f9262d84cab0039c07bf861045fbb3c20ab7 # v2.2.3 of wait-for script
+        run: |
+          wget -qO- https://raw.githubusercontent.com/eficode/wait-for/$WAIT_FOR_VERSION/wait-for | sh -s -- $PGHOST:$PGPORT -t 60 -- echo "PostgreSQL is up and ready!"
+
+      - name: Run Vector Test
+        working-directory: ./tests
+        env:
+          # Use standard PostgreSQL environment variables for connection within the test script
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres # Corresponds to POSTGRESQL_USERNAME in service env
+          PGPASSWORD: testpassword # Corresponds to POSTGRESQL_PASSWORD in service env
+          PGDATABASE: postgres # Corresponds to POSTGRESQL_DATABASE in service env
+        run: node vector_test.js 
