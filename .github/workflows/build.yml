@@ -26,6 +26,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      matrix: ${{ toJson(strategy.matrix) }}
+      FULL_IMAGE_TAG: ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v3
 
@@ -43,18 +46,77 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get variables
-        run: ./get_vars.sh
+        id: vars
+        run: |
+          ./get_vars.sh
+          echo "FULL_IMAGE_TAG=${FULL_IMAGE_TAG}" >> $GITHUB_OUTPUT
 
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           build-args: |
             BITNAMI_NAME=${{ env.BITNAMI_NAME }}
             PGVECTOR_NAME=${{ env.PGVECTOR_NAME }}
             PG_MAJOR_VERSION=${{ matrix.pg_version }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:pg${{ matrix.pg_version }}
-            ${{ matrix.pg_version == 17 && format('{0}/{1}:latest', env.REGISTRY, env.REPO_NAME) || '' }}
+            ${{ env.FULL_IMAGE_TAG }}
+            ${{ matrix.pg_version == '17' && github.event_name != 'pull_request' && format('{0}/{1}:latest', env.REGISTRY, env.REPO_NAME) || '' }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_NAME }},push-by-digest=false,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+
+  test-postgres:
+    needs: build-postgres
+    if: github.event_name != 'pull_request'
+    strategy:
+      matrix: ${{ fromJson(needs.build-postgres.outputs.matrix) }}
+    # Define the service container using the built image
+    services:
+      postgres:
+        image: ${{ needs.build-postgres.outputs.FULL_IMAGE_TAG }}
+        env:
+          # Explicitly set the password for the 'postgres' superuser
+          POSTGRESQL_POSTGRES_PASSWORD: testpassword
+        ports:
+          # Map port 5432 from the service container to the runner
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Keep other env vars if needed, but IMAGE_TAG is now in services
+      REGISTRY: ghcr.io
+      REPO_NAME: ${{ github.repository }}
+      PG_MAJOR_VERSION: ${{ matrix.pg_version }}
+      TEST_PG_PASSWORD: testpassword # Keep for the test script env
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read # Still need read access if image is private
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install test dependencies
+        working-directory: ./tests
+        run: npm install
+
+      - name: Run Vector Test
+        working-directory: ./tests
+        env:
+          # Connect to the service container using localhost as the host
+          # because the port is mapped to the runner
+          PGHOST: localhost
+          # The port is mapped to the runner, so use the mapped port
+          PGPORT: 5432
+          PGUSER: postgres # Default user in bitnami/postgres
+          PGPASSWORD: ${{ env.TEST_PG_PASSWORD }}
+          PGDATABASE: postgres # Default DB
+        run: node vector_test.js

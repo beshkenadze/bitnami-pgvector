@@ -72,6 +72,10 @@ echo "PGVector - Name: $PGVECTOR_NAME, Digest: ${PGVECTOR_DIGEST:7:5}"
 TAG_IDENTIFIER=pg$PG_MAJOR_VERSION-${BITNAMI_DIGEST:7:5}-${PGVECTOR_DIGEST:7:5}
 echo "Identifier will be $TAG_IDENTIFIER"
 
+# Construct full image tag
+FULL_IMAGE_TAG="${REGISTRY}/${REPO_NAME}:${TAG_IDENTIFIER}"
+echo "Full Image Tag will be $FULL_IMAGE_TAG"
+
 # Check if image exists in registry
 if [ -n "$GITHUB_ACTIONS" ]; then
     # In GitHub Actions, we're already authenticated
@@ -96,6 +100,7 @@ if [ -n "$GITHUB_ENV" ]; then
         echo "PGVECTOR_NAME=$PGVECTOR_NAME"
         echo "BITNAMI_NAME=$BITNAMI_NAME"
         echo "REPO_NAME=$REPO_NAME"
+        echo "FULL_IMAGE_TAG=$FULL_IMAGE_TAG"
     } >> "$GITHUB_ENV"
 else
     # We're in local environment - export vars to current shell
@@ -103,4 +108,5 @@ else
     export PGVECTOR_NAME="$PGVECTOR_NAME"
     export BITNAMI_NAME="$BITNAMI_NAME"
     export REPO_NAME="$REPO_NAME"
+    export FULL_IMAGE_TAG="$FULL_IMAGE_TAG"
 fi

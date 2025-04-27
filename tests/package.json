@@ -1,0 +1,15 @@
+{
+  "name": "pgvector-test",
+  "version": "1.0.0",
+  "description": "Test script for pgvector image",
+  "main": "vector_test.js",
+  "type": "module",
+  "scripts": {
+    "test": "node vector_test.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pg": "^8.15.6"
+  }
+} 
