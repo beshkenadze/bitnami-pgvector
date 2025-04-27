@@ -27,7 +27,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      build_matrix_json: ${{ toJson(strategy.matrix) }}
+      pg_version: ${{ matrix.pg_version }}
       FULL_IMAGE_TAG: ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v3
@@ -72,8 +72,10 @@ jobs:
     needs: build-postgres
     if: github.event_name != 'pull_request'
     strategy:
-      matrix: ${{ fromJson(needs.build-postgres.outputs.build_matrix_json) }}
-    # Define the service container using the built image
+      matrix:
+        pg_version: [16, 17]
+        include:
+          - pg_version: ${{ needs.build-postgres.outputs.pg_version }}
     services:
       postgres:
         image: ${{ needs.build-postgres.outputs.FULL_IMAGE_TAG }}
