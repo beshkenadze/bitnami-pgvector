@@ -51,7 +51,21 @@ jobs:
           ./get_vars.sh
           echo "FULL_IMAGE_TAG=${FULL_IMAGE_TAG}" >> $GITHUB_OUTPUT
 
+      - name: Check if image already exists
+        id: check_image
+        run: |
+          TAG_TO_CHECK="${{ steps.vars.outputs.FULL_IMAGE_TAG }}"
+          echo "Checking for tag: ${TAG_TO_CHECK}"
+          if docker manifest inspect "${TAG_TO_CHECK}" > /dev/null 2>&1; then
+            echo "Image ${TAG_TO_CHECK} already exists."
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Image ${TAG_TO_CHECK} does not exist. Proceeding with build."
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push
+        if: steps.check_image.outputs.exists == 'false' || (github.event_name == 'workflow_dispatch' && github.event.inputs.pg_version == matrix.pg_version)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -62,8 +76,8 @@ jobs:
             PGVECTOR_NAME=${{ env.PGVECTOR_NAME }}
             PG_MAJOR_VERSION=${{ matrix.pg_version }}
           tags: |
-            ${{ env.FULL_IMAGE_TAG }}
-            ${{ matrix.pg_version == '17' && github.event_name != 'pull_request' && format('{0}/{1}:latest', env.REGISTRY, env.REPO_NAME) || '' }}
+            ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
+            ${{ matrix.pg_version == '17' && github.event_name != 'pull_request' && steps.check_image.outputs.exists == 'false' && format('{0}/{1}:latest', env.REGISTRY, env.REPO_NAME) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_NAME }},push-by-digest=false,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
