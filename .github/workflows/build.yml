@@ -79,7 +79,7 @@ jobs:
             PG_MAJOR_VERSION=${{ matrix.pg_version }}
           tags: |
             ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
-            ${{ matrix.pg_version == '17' && github.event_name != 'pull_request' && steps.check_image.outputs.exists == 'false' && format('{0}/{1}:latest', env.REGISTRY, env.REPO_NAME) || '' }}
+            ${{ matrix.pg_version == '17' && github.event_name != 'pull_request' && format('{0}/{1}:latest', env.REGISTRY, env.REPO_NAME) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_NAME }},push-by-digest=false,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
