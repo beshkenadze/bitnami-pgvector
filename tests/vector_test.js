@@ -3,19 +3,52 @@ import pg from 'pg';
 
 const { Client } = pg;
 
-const client = new Client({
-  host: process.env.PGHOST || 'localhost',
-  port: process.env.PGPORT || 5432,
-  user: process.env.PGUSER || 'postgres',
-  password: process.env.PGPASSWORD || 'password',
-  database: process.env.PGDATABASE || 'postgres',
-});
+// Connection retry logic
+async function connectWithRetry(client, maxRetries = 5, retryInterval = 3000) {
+  let retries = 0;
+  
+  while (retries < maxRetries) {
+    try {
+      console.log(`Connection attempt ${retries + 1}/${maxRetries}...`);
+      await client.connect();
+      console.log("Connected successfully.");
+      return;
+    } catch (err) {
+      retries++;
+      console.log(`Connection failed (${retries}/${maxRetries}): ${err.message}`);
+      
+      if (retries >= maxRetries) {
+        console.error("Maximum connection attempts reached!");
+        throw err;
+      }
+      
+      console.log(`Waiting ${retryInterval/1000} seconds before retrying...`);
+      await new Promise(resolve => setTimeout(resolve, retryInterval));
+    }
+  }
+}
 
 async function runTest() {
+  console.log("Test environment variables:");
+  console.log(`PGHOST: ${process.env.PGHOST || 'localhost'}`);
+  console.log(`PGPORT: ${process.env.PGPORT || 5432}`);
+  console.log(`PGUSER: ${process.env.PGUSER || 'postgres'}`);
+  console.log(`PGDATABASE: ${process.env.PGDATABASE || 'postgres'}`);
+  console.log(`Password is ${process.env.PGPASSWORD ? 'set' : 'not set'}`);
+
+  const client = new Client({
+    host: process.env.PGHOST || 'localhost',
+    port: parseInt(process.env.PGPORT || '5432'),
+    user: process.env.PGUSER || 'postgres',
+    password: process.env.PGPASSWORD || 'password',
+    database: process.env.PGDATABASE || 'postgres',
+    // Add connection timeout
+    connectionTimeoutMillis: 10000,
+  });
+
   try {
-    console.log("Connecting to database...");
-    await client.connect();
-    console.log("Connected successfully.");
+    console.log("Connecting to database with retry...");
+    await connectWithRetry(client);
 
     console.log("Creating extension and table...");
     // pgvector might already be created by the base image, handle potential error
@@ -67,4 +100,4 @@ async function runTest() {
   }
 }
 
-runTest(); 
+runTest();

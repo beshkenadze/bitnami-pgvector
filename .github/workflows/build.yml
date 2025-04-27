@@ -80,13 +80,15 @@ jobs:
       postgres:
         image: ${{ needs.build-postgres.outputs.FULL_IMAGE_TAG }}
         env:
-          # Explicitly set the password for the 'postgres' superuser
-          POSTGRESQL_POSTGRES_PASSWORD: testpassword
+          # Bitnami PostgreSQL image uses different environment variable names than official image
+          POSTGRESQL_USERNAME: postgres
+          POSTGRESQL_PASSWORD: testpassword
+          POSTGRESQL_DATABASE: postgres
         ports:
           # Map port 5432 from the service container to the runner
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
