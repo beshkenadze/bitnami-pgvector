@@ -63,7 +63,7 @@ jobs:
         working-directory: ./tests
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
-          PGHOST: localhost
+          PGHOST: postgres
           PGPORT: 5432
           PGUSER: postgres # Corresponds to POSTGRESQL_USERNAME in service env
           PGPASSWORD: testpassword # Corresponds to POSTGRESQL_PASSWORD in service env
