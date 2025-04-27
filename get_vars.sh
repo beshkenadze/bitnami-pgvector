@@ -2,6 +2,13 @@
 # Exit on error
 set -e
 
+# Check if PG_MAJOR_VERSION is set
+if [ -z "$PG_MAJOR_VERSION" ]; then
+    echo "Error: PG_MAJOR_VERSION environment variable is not set."
+    echo "Please set PG_MAJOR_VERSION (e.g., export PG_MAJOR_VERSION=16)"
+    exit 1
+fi
+
 # Get repo name from environment or use default
 REPO_NAME=${REPO_NAME:-"beshkenadze/bitnami-pgvector"}
 
@@ -30,16 +37,16 @@ if [ ! -f "./jq" ]; then
 fi
 
 # Fetch Bitnami PostgreSQL tags
-BITNAMI_POSTGRES_REG_CONTENT=$(wget -q -O - "https://hub.docker.com/v2/namespaces/bitnami/repositories/postgresql/tags?page_size=100")
+BITNAMI_POSTGRES_REG_CONTENT=$(wget -q -O - "https://hub.docker.com/v2/repositories/bitnami/postgresql/tags?page_size=100&ordering=name&name=${PG_MAJOR_VERSION}.")
 if [ -z "$BITNAMI_POSTGRES_REG_CONTENT" ]; then
     echo "Error: Failed to fetch Bitnami PostgreSQL tags"
     exit 1
 fi
 
-# Get latest Debian-based PostgreSQL 16 tag
-BITNAMI_NAME=$(echo -n "$BITNAMI_POSTGRES_REG_CONTENT" | ./jq -r --arg ver "$PG_MAJOR_VERSION" '.results[] | select(.name | contains($ver) and contains("debian")) | .name' | head -n 1)
+# Get latest Debian-based PostgreSQL matching major version tag
+BITNAMI_NAME=$(echo -n "$BITNAMI_POSTGRES_REG_CONTENT" | ./jq -r --arg ver "$PG_MAJOR_VERSION" '.results[] | select(.name | startswith($ver + ".") and contains("debian")) | .name' | head -n 1)
 if [ -z "$BITNAMI_NAME" ]; then
-    echo "Error: Could not find a matching Bitnami PostgreSQL tag"
+    echo "Error: Could not find a matching Bitnami PostgreSQL tag starting with ${PG_MAJOR_VERSION}. and containing 'debian'"
     exit 1
 fi
 
