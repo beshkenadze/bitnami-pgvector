@@ -8,7 +8,7 @@ async function connectWithRetry(connectionOptions, maxRetries = 5, retryInterval
   let retries = 0;
   
   while (retries < maxRetries) {
-    const client = new pg.Client(connectionOptions);
+    const client = new Client(connectionOptions);
     
     try {
       console.log(`Connection attempt ${retries + 1}/${maxRetries}...`);

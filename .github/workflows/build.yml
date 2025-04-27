@@ -112,6 +112,11 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
+      # Install wget
+      - name: Install wget
+        run: |
+          apt-get update
+          apt-get install -y wget
 
       - name: Install test dependencies
         working-directory: ./tests
@@ -119,8 +124,8 @@ jobs:
 
       - name: Wait for PostgreSQL to be ready
         env:
-          PGPORT: ${{ job.services.postgres.ports['5432'] != '' && job.services.postgres.ports['5432'] || 5432 }}
-          PGHOST: postgres # Default user in bitnami/postgres
+          PGPORT: 5432
+          PGHOST: postgres
         run: |
           wget -qO- https://raw.githubusercontent.com/eficode/wait-for/$WAIT_FOR_VERSION/wait-for | sh -s -- $PGHOST:$PGPORT -t 60 -- echo "PostgreSQL is up and ready!"
 
@@ -131,7 +136,7 @@ jobs:
           # because the port is mapped to the runner
           PGHOST: localhost
           # The port is mapped to the runner, so use the mapped port
-          PGPORT: ${{ job.services.postgres.ports['5432'] != '' && job.services.postgres.ports['5432'] || 5432 }}
+          PGPORT: 5432
           PGUSER: postgres # Default user in bitnami/postgres
           PGPASSWORD: ${{ env.TEST_PG_PASSWORD }}
           PGDATABASE: postgres # Default DB
