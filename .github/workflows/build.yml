@@ -52,6 +52,8 @@ jobs:
         run: |
           ./get_vars.sh
           echo "FULL_IMAGE_TAG=${FULL_IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "TAG_SHORT=${TAG_SHORT}" >> $GITHUB_OUTPUT
+          echo "TAG_FULL_PGVECTOR_POSTGRES=${TAG_FULL_PGVECTOR_POSTGRES}" >> $GITHUB_OUTPUT
 
       - name: Check if image already exists
         id: check_image
@@ -79,6 +81,8 @@ jobs:
             PG_MAJOR_VERSION=${{ matrix.pg_version }}
           tags: |
             ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
+            ${{ steps.vars.outputs.TAG_SHORT }}
+            ${{ steps.vars.outputs.TAG_FULL_PGVECTOR_POSTGRES }}
             ${{ matrix.pg_version == '17' && github.event_name != 'pull_request' && format('{0}/{1}:latest', env.REGISTRY, env.REPO_NAME) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
