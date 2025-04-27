@@ -41,23 +41,23 @@ jobs:
         with:
           node-version: '20'
 
-      # Install tools needed for wait-for script and potentially other steps
-      - name: Install wget and netcat
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget netcat-traditional
+      # # Install tools needed for wait-for script and potentially other steps
+      # - name: Install wget and netcat
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y wget netcat-traditional
 
       - name: Install test dependencies
         working-directory: ./tests
         run: npm install
       
-      - name: Wait for PostgreSQL to be ready
-        env:
-          PGPORT: 5432 # Port mapped from service to runner
-          PGHOST: localhost # Service is accessible via localhost on the runner
-          WAIT_FOR_VERSION: 4df3f9262d84cab0039c07bf861045fbb3c20ab7 # v2.2.3 of wait-for script
-        run: |
-          wget -qO- https://raw.githubusercontent.com/eficode/wait-for/$WAIT_FOR_VERSION/wait-for | sh -s -- $PGHOST:$PGPORT -t 60 -- echo "PostgreSQL is up and ready!"
+      # - name: Wait for PostgreSQL to be ready
+      #   env:
+      #     PGPORT: 5432 # Port mapped from service to runner
+      #     PGHOST: localhost # Service is accessible via localhost on the runner
+      #     WAIT_FOR_VERSION: 4df3f9262d84cab0039c07bf861045fbb3c20ab7 # v2.2.3 of wait-for script
+      #   run: |
+      #     wget -qO- https://raw.githubusercontent.com/eficode/wait-for/$WAIT_FOR_VERSION/wait-for | sh -s -- $PGHOST:$PGPORT -t 60 -- echo "PostgreSQL is up and ready!"
 
       - name: Run Vector Test
         working-directory: ./tests
