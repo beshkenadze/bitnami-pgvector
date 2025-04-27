@@ -4,18 +4,27 @@ import pg from 'pg';
 const { Client } = pg;
 
 // Connection retry logic
-async function connectWithRetry(client, maxRetries = 5, retryInterval = 3000) {
+async function connectWithRetry(connectionOptions, maxRetries = 5, retryInterval = 3000) {
   let retries = 0;
   
   while (retries < maxRetries) {
+    const client = new pg.Client(connectionOptions);
+    
     try {
       console.log(`Connection attempt ${retries + 1}/${maxRetries}...`);
       await client.connect();
       console.log("Connected successfully.");
-      return;
+      return client;
     } catch (err) {
       retries++;
       console.log(`Connection failed (${retries}/${maxRetries}): ${err.message}`);
+      
+      // Always close the client, even if connection failed
+      try {
+        await client.end();
+      } catch (closeErr) {
+        // Ignore errors during client closing
+      }
       
       if (retries >= maxRetries) {
         console.error("Maximum connection attempts reached!");
@@ -26,6 +35,8 @@ async function connectWithRetry(client, maxRetries = 5, retryInterval = 3000) {
       await new Promise(resolve => setTimeout(resolve, retryInterval));
     }
   }
+  
+  throw new Error("Failed to connect after retries");
 }
 
 async function runTest() {
@@ -36,7 +47,7 @@ async function runTest() {
   console.log(`PGDATABASE: ${process.env.PGDATABASE || 'postgres'}`);
   console.log(`Password is ${process.env.PGPASSWORD ? 'set' : 'not set'}`);
 
-  const client = new Client({
+  const connectionOptions = {
     host: process.env.PGHOST || 'localhost',
     port: parseInt(process.env.PGPORT || '5432'),
     user: process.env.PGUSER || 'postgres',
@@ -44,11 +55,12 @@ async function runTest() {
     database: process.env.PGDATABASE || 'postgres',
     // Add connection timeout
     connectionTimeoutMillis: 10000,
-  });
+  };
 
+  let client;
   try {
     console.log("Connecting to database with retry...");
-    await connectWithRetry(client);
+    client = await connectWithRetry(connectionOptions);
 
     console.log("Creating extension and table...");
     // pgvector might already be created by the base image, handle potential error
