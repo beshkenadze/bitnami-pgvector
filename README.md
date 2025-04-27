@@ -22,9 +22,9 @@ docker pull ghcr.io/beshkenadze/bitnami-pgvector:latest
 
 Available tags:
 
-- `latest` - Latest build
+- `latest` - Latest build (currently PostgreSQL 17)
+- `pg17` - Latest PostgreSQL 17 build
 - `pg16` - Latest PostgreSQL 16 build
-- `pg16-233f3-67470` - Specific version combination
 
 ## Features
 
@@ -45,9 +45,12 @@ Available tags:
 ### Pull the Image
 
 ```bash
+# Pull the latest image (PostgreSQL 17)
 docker pull ghcr.io/${YOUR_GITHUB_USERNAME}/bitnami-pgvector:latest
-# or use a specific version
-docker pull ghcr.io/${YOUR_GITHUB_USERNAME}/bitnami-pgvector:pg16-xxxxx-xxxxx
+
+# Pull a specific major version
+docker pull ghcr.io/${YOUR_GITHUB_USERNAME}/bitnami-pgvector:pg17
+docker pull ghcr.io/${YOUR_GITHUB_USERNAME}/bitnami-pgvector:pg16
 ```
 
 ### Run the Container
@@ -57,7 +60,7 @@ docker run -d \
   --name postgres-vector \
   -e POSTGRESQL_PASSWORD=your_password \
   -p 5432:5432 \
-  ghcr.io/${YOUR_GITHUB_USERNAME}/bitnami-pgvector:latest
+  ghcr.io/${YOUR_GITHUB_USERNAME}/bitnami-pgvector:latest # Or specify :pg17 or :pg16
 ```
 
 ### Enable pgvector Extension
@@ -72,19 +75,10 @@ CREATE EXTENSION vector;
 
 ### Automated Builds
 
-The image is automatically built:
-
-- Every day at 20:00 UTC
-- On every push to the main branch
-- Manually through GitHub Actions interface
-
-To trigger a manual build:
-
-1. Go to the "Actions" tab in your GitHub repository
-2. Select the "Build Postgres" workflow
-3. Click "Run workflow"
-4. (Optional) Change the PostgreSQL version
-5. Click "Run workflow"
+- Scheduled and on push always build both versions (16 & 17).
+- Manual (`workflow_dispatch`):
+  - Set `pg_version` to `16` or `17` → build only that version.
+  - Leave `pg_version` empty → build both 16 and 17.
 
 ### Building Locally
 
@@ -95,9 +89,13 @@ git clone https://github.com/${YOUR_GITHUB_USERNAME}/bitnami-pgvector.git
 cd bitnami-pgvector
 ```
 
-2. Build the image:
+2. Build the image (specify the desired major version):
 
 ```bash
+# Build for PostgreSQL 17
+PG_MAJOR_VERSION=17 ./build.sh
+
+# Build for PostgreSQL 16
 PG_MAJOR_VERSION=16 ./build.sh
 ```
 
@@ -118,9 +116,8 @@ The script will:
 
 The images are tagged using the following format:
 
-- `latest`: Latest successful build
-- `pg{VERSION}`: Latest build for a specific PostgreSQL major version
-- `pg{VERSION}-{BITNAMI_HASH}-{PGVECTOR_HASH}`: Specific version combination
+- `latest`: Latest successful build (points to the highest PostgreSQL version, currently `pg17`)
+- `pg{VERSION}`: Latest build for a specific PostgreSQL major version (e.g., `pg17`, `pg16`)
 
 ## Contributing
 
