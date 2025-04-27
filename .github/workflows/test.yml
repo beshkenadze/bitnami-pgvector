@@ -57,4 +57,4 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: rootpassword 
           PGDATABASE: testdb
-        run: node vector_test.js 
+        run: npm run test
