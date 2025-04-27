@@ -64,6 +64,8 @@ jobs:
           tags: |
             ${{ env.FULL_IMAGE_TAG }}
             ${{ matrix.pg_version == '17' && github.event_name != 'pull_request' && format('{0}/{1}:latest', env.REGISTRY, env.REPO_NAME) || '' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_NAME }},push-by-digest=false,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
 
   test-postgres:
