@@ -70,6 +70,9 @@ jobs:
 
   test-postgres:
     needs: build-postgres
+    runs-on: ubuntu-latest
+     # Docker Hub image that `container-job` executes in
+    container: node:20-bookworm-slim
     if: github.event_name != 'pull_request'
     strategy:
       matrix:
@@ -85,7 +88,6 @@ jobs:
           POSTGRESQL_PASSWORD: testpassword
           POSTGRESQL_DATABASE: postgres
         ports:
-          # Map port 5432 from the service container to the runner
           - 5432:5432
         options: >-
           --health-cmd pg_isready
@@ -99,7 +101,7 @@ jobs:
       PG_MAJOR_VERSION: ${{ matrix.pg_version }}
       TEST_PG_PASSWORD: testpassword # Keep for the test script env
       WAIT_FOR_VERSION: 4df3f9262d84cab0039c07bf861045fbb3c20ab7 # v2.2.3
-    runs-on: ubuntu-latest
+    
     permissions:
       contents: read
       packages: read # Still need read access if image is private
@@ -116,17 +118,20 @@ jobs:
         run: npm install
 
       - name: Wait for PostgreSQL to be ready
+        env:
+          PGPORT: ${{ job.services.postgres.ports['5432'] != '' && job.services.postgres.ports['5432'] || 5432 }}
+          PGUSER: postgres # Default user in bitnami/postgres
         run: |
-          wget -qO- https://raw.githubusercontent.com/eficode/wait-for/$WAIT_FOR_VERSION/wait-for | sh -s -- localhost:${{ job.services.postgres.ports[5432] }} -t 60 -- echo "PostgreSQL is up and ready!"
+          wget -qO- https://raw.githubusercontent.com/eficode/wait-for/$WAIT_FOR_VERSION/wait-for | sh -s -- $PGUSER:$PGPORT -t 60 -- echo "PostgreSQL is up and ready!"
 
       - name: Run Vector Test
         working-directory: ./tests
         env:
           # Connect to the service container using localhost as the host
           # because the port is mapped to the runner
-          PGHOST: localhost
+          PGHOST: postgres
           # The port is mapped to the runner, so use the mapped port
-          PGPORT: ${{ job.services.postgres.ports[5432] }}
+          PGPORT: ${{ job.services.postgres.ports['5432'] != '' && job.services.postgres.ports['5432'] || 5432 }}
           PGUSER: postgres # Default user in bitnami/postgres
           PGPASSWORD: ${{ env.TEST_PG_PASSWORD }}
           PGDATABASE: postgres # Default DB
