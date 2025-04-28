@@ -94,7 +94,7 @@ jobs:
       # Label used to access the service container
       postgres:
         # Use the specific image tag built by the corresponding build job
-        image: ${{ fromJson(needs.build-postgres.outputs.FULL_IMAGE_TAG)[format('{{"pg_version":"{0}"}}', matrix.pg_version)] }}
+        image: ${{ needs.build-postgres.outputs.FULL_IMAGE_TAG[matrix.pg_version] }}
         # Provide the password for postgres
         ports:
           - 5432:5432
@@ -125,7 +125,7 @@ jobs:
 
       - name: Run User Test
         # Run step only if the corresponding build job actually built the image
-        if: fromJson(needs.build-postgres.outputs.was_built)[format('{{"pg_version":"{0}"}}', matrix.pg_version)] == true
+        if: needs.build-postgres.outputs.was_built[matrix.pg_version]
         working-directory: ./tests
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
@@ -140,7 +140,7 @@ jobs:
 
       - name: Run Vector Test
         # Run step only if the corresponding build job actually built the image
-        if: fromJson(needs.build-postgres.outputs.was_built)[format('{{"pg_version":"{0}"}}', matrix.pg_version)] == true
+        if: needs.build-postgres.outputs.was_built[matrix.pg_version]
         working-directory: ./tests
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
