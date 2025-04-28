@@ -4,3 +4,4 @@ jq
 logs.txt
 tests/node_modules
 event.json
+node_modules/

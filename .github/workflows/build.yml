@@ -27,7 +27,6 @@ jobs:
     env:
       REGISTRY: ghcr.io
       REPO_NAME: ${{ github.repository }}
-      PG_MAJOR_VERSION: ${{ matrix.pg_version }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     runs-on: ubuntu-latest
     permissions:
@@ -36,30 +35,41 @@ jobs:
     outputs:
       pg_version: ${{ matrix.pg_version }}
       FULL_IMAGE_TAG: ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
-      was_built: ${{ steps.build_step.outcome == 'success' }}
+      # Output whether the build step was skipped
+      build_skipped: ${{ steps.build_step.outcome == 'skipped' }}
+      # Output whether the image existed before the build attempt
+      image_exists: ${{ steps.vars.outputs.IMAGE_EXISTS == 'true' }}
     steps:
-      - uses: actions/checkout@v3
-
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+      
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to registry
+      - name: Log in to registry # Moved before get variables
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get variables
+      - name: Get variables and check image existence
         id: vars
-        run: |
-          ./get_vars.sh
+        env: # Add env block to pass the version
+          REPO_NAME: ${{ github.repository }}
+          PG_MAJOR_VERSION: ${{ matrix.pg_version }}
+        run: bun run get-vars
 
-      - name: Build and push
+      - name: Build and push # Add if condition
         id: build_step
+        # Only run if image doesn't exist OR force_build is true
+        if: steps.vars.outputs.IMAGE_EXISTS != 'true' || github.event.inputs.force_build == true
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -67,7 +77,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
             BITNAMI_NAME=${{ steps.vars.outputs.BITNAMI_NAME }}
-            PGVECTOR_NAME=${{ steps.vars.outputs.PGVECTOR_NAME }}
+            PGVECTOR_NAME=${{ steps.vars.outputs.PGVECTOR_NAME }}-pg${{ matrix.pg_version }}
             PG_MAJOR_VERSION=${{ matrix.pg_version }}
           tags: |
             ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
@@ -78,8 +88,21 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_NAME }},push-by-digest=false,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+
+      # Optional: Add a step to log the status for debugging
+      - name: Log Build Status
+        if: always() # Run this step even if previous steps fail or are skipped
+        run: |
+          echo "Image Exists Check: ${{ steps.vars.outputs.IMAGE_EXISTS }}"
+          echo "Force Build Input: ${{ github.event.inputs.force_build }}"
+          echo "Build Step Outcome: ${{ steps.build_step.outcome }}"
+          echo "Job Output build_skipped: ${{ steps.build_step.outcome == 'skipped' }}"
+          echo "Job Output image_exists: ${{ steps.vars.outputs.IMAGE_EXISTS == 'true' }}"
+
   test-runner-job:
     needs: build-postgres
+    # Run tests only if the image existed before OR if the build step ran and succeeded (wasn't skipped)
+    if: needs.build-postgres.outputs.image_exists == 'true' || needs.build-postgres.outputs.build_skipped != 'true'
     strategy:
       fail-fast: false # Optional: prevent job cancellations if one matrix job fails
       matrix:
@@ -87,13 +110,13 @@ jobs:
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
     # Docker Hub image that `container-job` executes in
-    container: node:20-bookworm-slim
+    container: debian:bookworm-slim
 
     # Service containers to run with `container-job`
     services:
       # Label used to access the service container
       postgres:
-        # Use the specific image tag built by the corresponding build job
+        # Use the specific image tag built or verified by the corresponding build job
         # Access the output directly; GitHub Actions maps matrix outputs automatically
         image: ${{ needs.build-postgres.outputs.FULL_IMAGE_TAG }}
         # Provide the password for postgres
@@ -111,24 +134,33 @@ jobs:
           --health-timeout 10s
           --health-retries 5
 
-    steps:
+    steps:     
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v3
+      - name: Set up system packages
+        run: |
+          apt-get update
+          apt-get install -y curl unzip git ca-certificates
+        
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+      
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
         with:
-          node-version: "20"
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      
+      - name: Install dependencies
+        run: bun install
+        
+      - name: Setup CI environment
+        run: bun run ci:setup
 
-      - name: Install test dependencies
-        working-directory: ./tests
-        run: npm install
-
-      - name: Run User Test
-        # Run step only if the corresponding build job actually built the image
-        # Access the output directly; GitHub Actions maps matrix outputs automatically
-        if: needs.build-postgres.outputs.was_built == 'true'
-        working-directory: ./tests
+      - name: Run PostgreSQL connection test
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
@@ -138,13 +170,9 @@ jobs:
           PGUSER: testuser
           PGPASSWORD: testpassword
           PGDATABASE: testdb
-        run: npm run test
+        run: bun run test:pg
 
-      - name: Run Vector Test
-        # Run step only if the corresponding build job actually built the image
-        # Access the output directly; GitHub Actions maps matrix outputs automatically
-        if: needs.build-postgres.outputs.was_built == 'true'
-        working-directory: ./tests
+      - name: Run pgvector extension test
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
@@ -154,4 +182,4 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: rootpassword
           PGDATABASE: testdb
-        run: npm run test:vector
+        run: bun run test:vector
