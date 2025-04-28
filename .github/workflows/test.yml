@@ -25,7 +25,7 @@ jobs:
         # Provide the password for postgres
         # Expose container port 5432, let Docker assign a random host port
         ports:
-          - 5432
+          - 5432:5432
         env:
           POSTGRESQL_USERNAME: testuser
           POSTGRESQL_POSTGRES_PASSWORD: rootpassword
@@ -57,7 +57,7 @@ jobs:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
           # Use the dynamically assigned host port
-          PGPORT: ${{ job.services.postgres.ports['5432'] }}
+          PGPORT: 5432
           # To use vector extension, we need to use root user
           PGUSER: testuser
           PGPASSWORD: testpassword
@@ -70,7 +70,7 @@ jobs:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
           # Use the dynamically assigned host port
-          PGPORT: ${{ job.services.postgres.ports['5432'] }}
+          PGPORT: 5432
           # To use vector extension, we need to use root user
           PGUSER: postgres
           PGPASSWORD: rootpassword
