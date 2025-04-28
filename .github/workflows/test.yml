@@ -6,8 +6,13 @@ on:
 jobs:
   # Label of the container job
   test-runner-job:
+    name: Test PG ${{ matrix.pg_version }} # Add a custom name using the matrix variable
     # Containers must run in Linux based operating systems
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # Move fail-fast under strategy
+      matrix:
+        pg_version: [16, 17] # Add matrix for PostgreSQL versions
     # Docker Hub image that `container-job` executes in
     container: node:20-bookworm-slim
 
@@ -15,11 +20,12 @@ jobs:
     services:
       # Label used to access the service container
       postgres:
-        # Docker Hub image
-        image: ghcr.io/beshkenadze/bitnami-pgvector:pg16-233f3-5f411
+        # Docker Hub image using matrix variable
+        image: ghcr.io/beshkenadze/bitnami-pgvector:pg${{ matrix.pg_version }}
         # Provide the password for postgres
+        # Expose container port 5432, let Docker assign a random host port
         ports:
-          - 5432:5432
+          - 5432 
         env:
           POSTGRESQL_USERNAME: testuser
           POSTGRESQL_POSTGRES_PASSWORD: rootpassword
@@ -50,7 +56,8 @@ jobs:
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
-          PGPORT: 5432
+          # Use the dynamically assigned host port
+          PGPORT: ${{ job.services.postgres.ports['5432'] }}
           # To use vector extension, we need to use root user
           PGUSER: testuser
           PGPASSWORD: testpassword 
@@ -62,7 +69,8 @@ jobs:
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
-          PGPORT: 5432
+          # Use the dynamically assigned host port
+          PGPORT: ${{ job.services.postgres.ports['5432'] }}
           # To use vector extension, we need to use root user
           PGUSER: postgres
           PGPASSWORD: rootpassword 

@@ -110,7 +110,7 @@ jobs:
         image: ${{ needs.build-postgres.outputs.FULL_IMAGE_TAG }}
         # Provide the password for postgres
         ports:
-          - 5432:5432
+          - 5432
         env:
           POSTGRESQL_USERNAME: testuser
           POSTGRESQL_POSTGRES_PASSWORD: rootpassword
@@ -141,7 +141,8 @@ jobs:
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
-          PGPORT: 5432
+          # Use the dynamically assigned host port
+          PGPORT: ${{ job.services.postgres.ports['5432'] }}
           # To use vector extension, we need to use root user
           PGUSER: testuser
           PGPASSWORD: testpassword 
@@ -153,7 +154,8 @@ jobs:
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
-          PGPORT: 5432
+          # Use the dynamically assigned host port
+          PGPORT: ${{ job.services.postgres.ports['5432'] }}
           # To use vector extension, we need to use root user
           PGUSER: postgres
           PGPASSWORD: rootpassword 

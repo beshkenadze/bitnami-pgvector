@@ -2,3 +2,4 @@ g
 jq
 .secrets
 logs.txt
+tests/node_modules
