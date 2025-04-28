@@ -25,7 +25,7 @@ jobs:
         # Provide the password for postgres
         # Expose container port 5432, let Docker assign a random host port
         ports:
-          - 5432 
+          - 5432
         env:
           POSTGRESQL_USERNAME: testuser
           POSTGRESQL_POSTGRES_PASSWORD: rootpassword
@@ -33,7 +33,7 @@ jobs:
           POSTGRESQL_DATABASE: testdb
         # Set health checks to wait until postgres has started
         options: >-
-          --health-cmd 'pg_isready -U "postgres" -h 0.0.0.0 -p 5432'
+          --health-cmd ["CMD-SHELL", "pg_isready -U postgres -h 0.0.0.0 -p 5432"]
           --health-interval 30s
           --health-timeout 10s
           --health-retries 5
@@ -45,7 +45,7 @@ jobs:
       - name: Set up Node.js 20
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install test dependencies
         working-directory: ./tests
@@ -60,10 +60,10 @@ jobs:
           PGPORT: ${{ job.services.postgres.ports['5432'] }}
           # To use vector extension, we need to use root user
           PGUSER: testuser
-          PGPASSWORD: testpassword 
+          PGPASSWORD: testpassword
           PGDATABASE: testdb
-        run: npm run test 
-    
+        run: npm run test
+
       - name: Run Vector Test
         working-directory: ./tests
         env:
@@ -73,6 +73,6 @@ jobs:
           PGPORT: ${{ job.services.postgres.ports['5432'] }}
           # To use vector extension, we need to use root user
           PGUSER: postgres
-          PGPASSWORD: rootpassword 
+          PGPASSWORD: rootpassword
           PGDATABASE: testdb
         run: npm run test:vector
