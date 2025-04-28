@@ -4,6 +4,17 @@
 
 This project provides a Docker image that combines Bitnami's PostgreSQL with the pgvector extension for vector similarity search capabilities.
 
+**How it works:**
+
+1.  **Version Fetching:** A script (`get_vars.sh`) automatically fetches the latest compatible Debian-based Bitnami PostgreSQL image tag and the latest pgvector tag corresponding to the specified PostgreSQL major version (e.g., 16 or 17) from Docker Hub.
+2.  **Multi-Stage Build:** The Dockerfile uses a multi-stage build. It first pulls the official `pgvector/pgvector` image to extract the necessary extension files (`vector.so` and related SQL files).
+3.  **Combining:** It then copies these pgvector files into the official `bitnami/postgresql` image specified by the fetched tag.
+4.  **Multi-Architecture:** The build process (using GitHub Actions or `build.sh`) creates images for both `linux/amd64` and `linux/arm64` architectures.
+
+**Testing:**
+
+Images are automatically tested after successful builds using GitHub Actions (`.github/workflows/build.yml`). The workflow spins up a container using the newly built image and runs a suite of tests (`tests/pgtest.js` and `tests/vector_test.js`) against it to ensure basic PostgreSQL functionality and that the `vector` extension can be created and used.
+
 ## Quick Install
 
 For specific architectures:
@@ -25,13 +36,14 @@ docker pull ghcr.io/beshkenadze/bitnami-pgvector:latest
 ## Available tags:
 
 <!-- AVAILABLE_TAGS_START -->
-*   `latest`: Latest build based on PostgreSQL 17.
-*   `0.8.0-pg16`: Specific pgvector and PostgreSQL 16 version.
-*   `pg16`: Latest build for PostgreSQL 16.
-*   `0.8.0-pg16.6.0`: Specific pgvector, PostgreSQL full version (16.6.0).
-*   `0.8.0-pg17`: Specific pgvector and PostgreSQL 17 version.
-*   `pg17`: Latest build for PostgreSQL 17.
-*   `0.8.0-pg17.4.0`: Specific pgvector, PostgreSQL full version (17.4.0).
+
+- `latest`: Latest build based on PostgreSQL 17.
+- `0.8.0-pg16`: Specific pgvector and PostgreSQL 16 version.
+- `pg16`: Latest build for PostgreSQL 16.
+- `0.8.0-pg16.6.0`: Specific pgvector, PostgreSQL full version (16.6.0).
+- `0.8.0-pg17`: Specific pgvector and PostgreSQL 17 version.
+- `pg17`: Latest build for PostgreSQL 17.
+- `0.8.0-pg17.4.0`: Specific pgvector, PostgreSQL full version (17.4.0).
 <!-- AVAILABLE_TAGS_END -->
 
 ## Features
