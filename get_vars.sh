@@ -104,13 +104,13 @@ echo "PGVector Minor Version: $PGVECTOR_MINOR_VER"
 # Primary tag for existence check and build - use the full name fetched
 # TAG_PRIMARY is already set correctly above
 # Other tags
-TAG_SHORT="${REGISTRY}/${REPO_NAME}:${PGVECTOR_MINOR_VER}-pg${PG_MAJOR_VERSION}"
+TAG_SHORT="${REGISTRY}/${REPO_NAME}:pg${PG_MAJOR_VERSION}"
 TAG_FULL_PGVECTOR_POSTGRES="${REGISTRY}/${REPO_NAME}:${PGVECTOR_FULL_VER}-pg${POSTGRES_FULL_VER}"
 
 FULL_IMAGE_TAG="${REGISTRY}/${REPO_NAME}:${TAG_PRIMARY}" # Use primary tag for the main output
 
 echo "Primary Tag: $TAG_PRIMARY"
-echo "Short Tag: ${PGVECTOR_MINOR_VER}-pg${PG_MAJOR_VERSION}" # Display tag part only
+echo "Short Tag: pg${PG_MAJOR_VERSION}" # Display tag part only
 echo "Full PGVector/Postgres Tag: ${PGVECTOR_FULL_VER}-pg${POSTGRES_FULL_VER}" # Display tag part only
 echo "Full Image Tag (for check): $FULL_IMAGE_TAG"
 

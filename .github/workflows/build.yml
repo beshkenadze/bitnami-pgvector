@@ -13,6 +13,11 @@ on:
         required: false
         # No default, empty string '' means build all
         type: string
+      force_build:
+        description: "Force build even if image exists (true/false)."
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build-postgres:
@@ -32,6 +37,7 @@ jobs:
       pg_version: ${{ matrix.pg_version }}
       FULL_IMAGE_TAG: ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
       image_exists: ${{ steps.check_image.outputs.exists }}
+      was_built: ${{ steps.build_step.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v3
 
@@ -58,19 +64,22 @@ jobs:
         run: |
           TAG_TO_CHECK="${{ steps.vars.outputs.FULL_IMAGE_TAG }}"
           echo "Checking for tag: ${TAG_TO_CHECK}"
-          # Try to pull the image first to ensure we have the latest manifest
-          if docker pull "${TAG_TO_CHECK}"; then
+          # Use docker manifest inspect for a lighter check
+          if docker manifest inspect "${TAG_TO_CHECK}" > /dev/null 2>&1; then
             echo "Image ${TAG_TO_CHECK} exists in the registry."
-            # Optional: Verify with manifest inspect if needed, though pull success implies existence
-            docker manifest inspect "${TAG_TO_CHECK}" > /dev/null 2>&1
             echo "exists=true" >> $GITHUB_OUTPUT
           else
-            echo "Image ${TAG_TO_CHECK} does not exist in the registry or pull failed. Proceeding with build."
+            # Assuming any failure means it doesn't exist or isn't accessible for our purposes
+            echo "Image ${TAG_TO_CHECK} does not appear to exist in the registry or check failed. Proceeding with build."
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push
-        if: steps.check_image.outputs.exists == 'false' || (github.event_name == 'workflow_dispatch' && github.event.inputs.pg_version == matrix.pg_version)
+        id: build_step
+        if: >
+          steps.check_image.outputs.exists == 'false' ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.pg_version == matrix.pg_version) ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.force_build == true)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -91,9 +100,6 @@ jobs:
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.REPO_NAME }},push-by-digest=false,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
   test-runner-job:
     needs: build-postgres
-    # Run this job only if the corresponding build job built an image
-    if: needs.build-postgres.outputs.image_exists == 'false' || (github.event_name == 'workflow_dispatch' && github.event.inputs.pg_version == needs.build-postgres.outputs.pg_version)
-
     strategy:
       fail-fast: false # Optional: prevent job cancellations if one matrix job fails
       matrix:
@@ -107,8 +113,8 @@ jobs:
     services:
       # Label used to access the service container
       postgres:
-        # Docker Hub image - Dynamically select based on the matrix pg_version
-        image: ${{ needs.build-postgres.outputs.FULL_IMAGE_TAG }}
+        # Use the specific image tag built by the corresponding build job
+        image: ${{ fromJson(needs.build-postgres.outputs.FULL_IMAGE_TAG)[format('{{"pg_version":"{0}"}}', matrix.pg_version)] }}
         # Provide the password for postgres
         ports:
           - 5432:5432
@@ -138,6 +144,8 @@ jobs:
         run: npm install
 
       - name: Run User Test
+        # Run step only if the corresponding build job actually built the image
+        if: fromJson(needs.build-postgres.outputs.was_built)[format('{{"pg_version":"{0}"}}', matrix.pg_version)] == true
         working-directory: ./tests
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
@@ -151,6 +159,8 @@ jobs:
         run: npm run test 
     
       - name: Run Vector Test
+        # Run step only if the corresponding build job actually built the image
+        if: fromJson(needs.build-postgres.outputs.was_built)[format('{{"pg_version":"{0}"}}', matrix.pg_version)] == true
         working-directory: ./tests
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
