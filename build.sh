@@ -31,10 +31,11 @@ docker buildx build \
     --platform linux/amd64,linux/arm64 \
     --build-arg BITNAMI_NAME="${BITNAMI_NAME}" \
     --build-arg PGVECTOR_NAME="${PGVECTOR_NAME}" \
-    --tag "ghcr.io/${REPO_NAME}:${TAG_IDENTIFIER}" \
+    --build-arg PG_MAJOR_VERSION="${PG_MAJOR_VERSION}" \
+    --tag "ghcr.io/${REPO_NAME}:${PGVECTOR_NAME}" \
     --tag "ghcr.io/${REPO_NAME}:latest" \
     --push \
     .
 
 echo "Build completed successfully!"
-echo "Image tagged as: ghcr.io/${REPO_NAME}:${TAG_IDENTIFIER}"
+echo "Image tagged as: ghcr.io/${REPO_NAME}:${PGVECTOR_NAME}"
