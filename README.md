@@ -22,11 +22,17 @@ For multi-arch support (automatically selects the right architecture):
 docker pull ghcr.io/beshkenadze/bitnami-pgvector:latest
 ```
 
-Available tags:
+## Available tags:
 
-- `latest` - Latest build (currently PostgreSQL 17)
-- `pg17` - Latest PostgreSQL 17 build
-- `pg16` - Latest PostgreSQL 16 build
+<!-- AVAILABLE_TAGS_START -->
+*   `latest`: Latest build based on PostgreSQL 17.
+*   `0.8.0-pg16`: Specific pgvector and PostgreSQL 16 version.
+*   `pg16`: Latest build for PostgreSQL 16.
+*   `0.8.0-pg16.6.0`: Specific pgvector, PostgreSQL full version (16.6.0).
+*   `0.8.0-pg17`: Specific pgvector and PostgreSQL 17 version.
+*   `pg17`: Latest build for PostgreSQL 17.
+*   `0.8.0-pg17.4.0`: Specific pgvector, PostgreSQL full version (17.4.0).
+<!-- AVAILABLE_TAGS_END -->
 
 ## Features
 
