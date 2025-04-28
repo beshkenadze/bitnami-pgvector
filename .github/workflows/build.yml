@@ -84,6 +84,7 @@ jobs:
             ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
             ${{ steps.vars.outputs.TAG_SHORT }}
             ${{ steps.vars.outputs.TAG_FULL_PGVECTOR_POSTGRES }}
+            ${{ env.REGISTRY }}/${{ env.REPO_NAME }}:pg${{ matrix.pg_version }}
             ${{ matrix.pg_version == '17' && github.event_name != 'pull_request' && format('{0}/{1}:latest', env.REGISTRY, env.REPO_NAME) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -110,7 +111,7 @@ jobs:
         image: ${{ needs.build-postgres.outputs.FULL_IMAGE_TAG }}
         # Provide the password for postgres
         ports:
-          - 5432
+          - 5432:5432
         env:
           POSTGRESQL_USERNAME: testuser
           POSTGRESQL_POSTGRES_PASSWORD: rootpassword
@@ -142,7 +143,7 @@ jobs:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
           # Use the dynamically assigned host port
-          PGPORT: ${{ job.services.postgres.ports['5432'] }}
+          PGPORT: 5432
           # To use vector extension, we need to use root user
           PGUSER: testuser
           PGPASSWORD: testpassword 
@@ -155,7 +156,7 @@ jobs:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
           # Use the dynamically assigned host port
-          PGPORT: ${{ job.services.postgres.ports['5432'] }}
+          PGPORT: 5432
           # To use vector extension, we need to use root user
           PGUSER: postgres
           PGPASSWORD: rootpassword 
