@@ -105,7 +105,7 @@ jobs:
           POSTGRESQL_DATABASE: testdb
         # Set health checks to wait until postgres has started
         options: >-
-          --health-cmd ["CMD-SHELL", "pg_isready -U postgres -h 0.0.0.0 -p 5432"]
+          --health-cmd "pg_isready -U postgres -h 0.0.0.0 -p 5432"
           --health-interval 30s
           --health-timeout 10s
           --health-retries 5
