@@ -13,7 +13,7 @@ This project provides a Docker image that combines Bitnami's PostgreSQL with the
 
 **Testing:**
 
-Images are automatically tested after successful builds using GitHub Actions (`.github/workflows/build.yml`). The workflow spins up a container using the newly built image and runs a suite of tests (`tests/pgtest.js` and `tests/vector_test.js`) against it to ensure basic PostgreSQL functionality and that the `vector` extension can be created and used.
+Images are automatically tested after successful builds using GitHub Actions (`.github/workflows/build.yml`). The workflow spins up a container using the newly built image and runs a suite of TypeScript tests (`src/tests/pgtest.ts` and `src/tests/vector_test.ts`) against it to ensure basic PostgreSQL functionality and that the `vector` extension can be created and used.
 
 ## Quick Install
 
@@ -37,13 +37,13 @@ docker pull ghcr.io/beshkenadze/bitnami-pgvector:latest
 
 <!-- AVAILABLE_TAGS_START -->
 
-- `latest`: Latest build based on PostgreSQL 17.
-- `0.8.0-pg16`: Specific pgvector and PostgreSQL 16 version.
-- `pg16`: Latest build for PostgreSQL 16.
-- `0.8.0-pg16.6.0`: Specific pgvector, PostgreSQL full version (16.6.0).
-- `0.8.0-pg17`: Specific pgvector and PostgreSQL 17 version.
-- `pg17`: Latest build for PostgreSQL 17.
-- `0.8.0-pg17.4.0`: Specific pgvector, PostgreSQL full version (17.4.0).
+*   `latest`: Latest build based on PostgreSQL 17.
+*   `bitnami-pgvector:0.8.0-pg16-16.6.0-debian-12-r2`: Specific pgvector and PostgreSQL 16 version.
+*   `bitnami-pgvector:0.8.0-pg16`: Latest build for PostgreSQL 16.
+*   `bitnami-pgvector:0.8.0-postgres16`: Specific pgvector, PostgreSQL full version (16.6.0).
+*   `bitnami-pgvector:0.8.0-pg17-17.4.0-debian-12-r17`: Specific pgvector and PostgreSQL 17 version.
+*   `bitnami-pgvector:0.8.0-pg17`: Latest build for PostgreSQL 17.
+*   `bitnami-pgvector:0.8.0-postgres17`: Specific pgvector, PostgreSQL full version (17.4.0).
 <!-- AVAILABLE_TAGS_END -->
 
 ## Features
@@ -53,6 +53,8 @@ docker pull ghcr.io/beshkenadze/bitnami-pgvector:latest
 - Multi-architecture support (amd64 and arm64)
 - Automated builds via GitHub Actions
 - Version tracking based on both PostgreSQL and pgvector versions
+- TypeScript support for automation scripts and tests
+- Biome linting for code quality
 
 ## Prerequisites
 

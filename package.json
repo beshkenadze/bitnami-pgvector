@@ -1,0 +1,33 @@
+{
+  "name": "bitnami-pgvector-scripts",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "update-readme": "bun run src/updateReadmeBadge.ts",
+    "get-vars": "bun run src/getVars.ts",
+    "test": "bun test",
+    "test:ts": "bun test src/",
+    "test:pg": "bun run src/tests/pgtest.ts",
+    "test:vector": "bun run src/tests/vector_test.ts",
+    "test:postgres": "./src/tests/run_tests.sh",
+    "lint": "bunx @biomejs/biome lint src/",
+    "lint:fix": "bunx @biomejs/biome lint --write src/",
+    "format": "bunx @biomejs/biome format --write src/",
+    "check": "bunx @biomejs/biome check --write src/",
+    "ci:setup": "bun run src/ci/setup.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "^1.2.10",
+    "@types/marked": "^6.0.0",
+    "@types/pg": "^8.11.14"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "marked": "^15.0.11",
+    "pg": "^8.15.6"
+  }
+}

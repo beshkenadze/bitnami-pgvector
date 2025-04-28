@@ -1,8 +1,6 @@
 name: Running Tests
-
 on:
   workflow_dispatch: # Allows manual triggering
-
 jobs:
   # Label of the container job
   test-runner-job:
@@ -14,8 +12,7 @@ jobs:
       matrix:
         pg_version: [16, 17] # Add matrix for PostgreSQL versions
     # Docker Hub image that `container-job` executes in
-    container: node:20-bookworm-slim
-
+    container: debian:bookworm-slim
     # Service containers to run with `container-job`
     services:
       # Label used to access the service container
@@ -37,22 +34,29 @@ jobs:
           --health-interval 30s
           --health-timeout 10s
           --health-retries 5
-
-    steps:
+    steps:    
       - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v3
+        uses: actions/checkout@v4
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+      
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
         with:
-          node-version: "20"
-
-      - name: Install test dependencies
-        working-directory: ./tests
-        run: npm install
-
-      - name: Run User Test
-        working-directory: ./tests
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+      
+      - name: Install dependencies
+        run: bun install
+        
+      - name: Setup CI environment
+        run: bun run ci:setup
+        
+      - name: Run Biome lint
+        run: bun run lint
+      - name: Run PostgreSQL connection test
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
@@ -62,10 +66,8 @@ jobs:
           PGUSER: testuser
           PGPASSWORD: testpassword
           PGDATABASE: testdb
-        run: npm run test
-
-      - name: Run Vector Test
-        working-directory: ./tests
+        run: bun run test:pg
+      - name: Run pgvector extension test
         env:
           # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
@@ -75,4 +77,4 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: rootpassword
           PGDATABASE: testdb
-        run: npm run test:vector
+        run: bun run test:vector
