@@ -36,7 +36,6 @@ jobs:
     outputs:
       pg_version: ${{ matrix.pg_version }}
       FULL_IMAGE_TAG: ${{ steps.vars.outputs.FULL_IMAGE_TAG }}
-      image_exists: ${{ steps.check_image.outputs.exists }}
       was_built: ${{ steps.build_step.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v3
@@ -59,27 +58,8 @@ jobs:
         run: |
           ./get_vars.sh
 
-      - name: Check if image already exists
-        id: check_image
-        run: |
-          TAG_TO_CHECK="${{ steps.vars.outputs.FULL_IMAGE_TAG }}"
-          echo "Checking for tag: ${TAG_TO_CHECK}"
-          # Use docker manifest inspect for a lighter check
-          if docker manifest inspect "${TAG_TO_CHECK}" > /dev/null 2>&1; then
-            echo "Image ${TAG_TO_CHECK} exists in the registry."
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            # Assuming any failure means it doesn't exist or isn't accessible for our purposes
-            echo "Image ${TAG_TO_CHECK} does not appear to exist in the registry or check failed. Proceeding with build."
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build and push
         id: build_step
-        if: >
-          steps.check_image.outputs.exists == 'false' ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.pg_version == matrix.pg_version) ||
-          (github.event_name == 'workflow_dispatch' && github.event.inputs.force_build == true)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -108,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     # Docker Hub image that `container-job` executes in
     container: node:20-bookworm-slim
-      
+
     # Service containers to run with `container-job`
     services:
       # Label used to access the service container
@@ -137,7 +117,7 @@ jobs:
       - name: Set up Node.js 20
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install test dependencies
         working-directory: ./tests
@@ -154,10 +134,10 @@ jobs:
           PGPORT: 5432
           # To use vector extension, we need to use root user
           PGUSER: testuser
-          PGPASSWORD: testpassword 
+          PGPASSWORD: testpassword
           PGDATABASE: testdb
-        run: npm run test 
-    
+        run: npm run test
+
       - name: Run Vector Test
         # Run step only if the corresponding build job actually built the image
         if: fromJson(needs.build-postgres.outputs.was_built)[format('{{"pg_version":"{0}"}}', matrix.pg_version)] == true
@@ -169,6 +149,6 @@ jobs:
           PGPORT: 5432
           # To use vector extension, we need to use root user
           PGUSER: postgres
-          PGPASSWORD: rootpassword 
+          PGPASSWORD: rootpassword
           PGDATABASE: testdb
-        run: npm run test:vector        
+        run: npm run test:vector
