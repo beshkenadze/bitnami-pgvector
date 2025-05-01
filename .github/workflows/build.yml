@@ -130,7 +130,7 @@ jobs:
           - 5432:5432
         env:
           POSTGRESQL_USERNAME: testuser
-          # POSTGRESQL_POSTGRES_PASSWORD: rootpassword # Not needed when connecting as testuser
+          POSTGRESQL_POSTGRES_PASSWORD: rootpassword
           POSTGRESQL_PASSWORD: testpassword
           POSTGRESQL_DATABASE: testdb
         # Set health checks to wait until postgres has started
@@ -171,8 +171,8 @@ jobs:
         env:
           PGHOST: postgres
           PGPORT: 5432
-          PGUSER: testuser # Use the dedicated test user
-          PGPASSWORD: testpassword
+          PGUSER: postgres # Use the root user to mitigate permission issues with extensions
+          PGPASSWORD: rootpassword
           PGDATABASE: testdb
         run: bun run test:e2e --bail # Run the consolidated script, bail on first failure
 
@@ -189,18 +189,39 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const buildOutputs = ${{ toJSON(needs.build-postgres.outputs) }};
-            console.log("Build Outputs:", JSON.stringify(buildOutputs, null, 2));
-            // Check if 'build_skipped' is 'false' for any matrix combination
-            let buildOccurred = false;
-            for (const jobKey in buildOutputs) {
-              if (buildOutputs[jobKey]?.build_skipped === 'false') {
-                buildOccurred = true;
-                break;
+            try {
+              const buildOutputs = ${{ toJSON(needs.build-postgres.outputs) }};
+              console.log("Build Outputs Raw:\n", JSON.stringify(buildOutputs, null, 2));
+
+              let buildOccurred = false;
+              // Ensure buildOutputs is a valid object before iterating
+              if (typeof buildOutputs === 'object' && buildOutputs !== null) {
+                for (const jobKey in buildOutputs) {
+                  // Check if the property belongs to the object itself
+                  if (Object.hasOwnProperty.call(buildOutputs, jobKey)) {
+                    // Use optional chaining for safety
+                    const jobOutput = buildOutputs[jobKey];
+                    console.log(`Processing job: ${jobKey}, Skipped: ${jobOutput?.build_skipped}`);
+                    if (jobOutput?.build_skipped === 'false') {
+                      buildOccurred = true;
+                      console.log(`Build occurred found in job: ${jobKey}`);
+                      break; // Exit loop once a build is found
+                    }
+                  }
+                }
+              } else {
+                console.log("Warning: needs.build-postgres.outputs was not a valid object:", buildOutputs);
               }
+
+              console.log("Final Build Occurred Status:", buildOccurred);
+              core.setOutput('build_occurred', buildOccurred.toString());
+
+            } catch (error) {
+              console.error("Error processing build outputs:", error);
+              // Default to false if any error occurs during script execution
+              core.setOutput('build_occurred', 'false');
+              core.setFailed(`Script failed: ${error.message}`);
             }
-            console.log("Build Occurred:", buildOccurred);
-            core.setOutput('build_occurred', buildOccurred.toString()); # Ensure output is string
 
   update_readme:
     needs: [check_build_status, test-runner-job]

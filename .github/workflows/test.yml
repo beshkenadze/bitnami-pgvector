@@ -68,7 +68,7 @@ jobs:
         env:
           PGHOST: postgres
           PGPORT: 5432
-          PGUSER: testuser # Connect as the test user
-          PGPASSWORD: testpassword
+          PGUSER: postgres # Use the root user to mitigate permission issues with extensions
+          PGPASSWORD: rootpassword
           PGDATABASE: testdb
         run: bun run test:e2e --bail # Use the consolidated script
