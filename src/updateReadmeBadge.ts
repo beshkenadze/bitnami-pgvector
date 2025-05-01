@@ -110,14 +110,16 @@ async function generateAvailableTagsMarkdown(
     // Extract the necessary tags
     const fullImageTag = vars.fullImageTag;
     const tagShort = vars.tagShort;
-    const tagFullPgvectorPostgres = vars.tagFullPgvectorPostgres;
+    const tagWithFullPostgresVersion = vars.tagWithFullPostgresVersion;
+    const tagLatestPg = vars.tagLatestPg;
 
     // Extract tag names from full references
     const tagPrimary = fullImageTag.split("/").pop();
     const shortTagName = tagShort.split("/").pop();
-    const fullPgvectorTag = tagFullPgvectorPostgres.split("/").pop();
+    const fullPgvectorTag = tagWithFullPostgresVersion.split("/").pop();
+    const latestPgTagName = tagLatestPg.split("/").pop();
 
-    if (!tagPrimary || !shortTagName || !fullPgvectorTag) {
+    if (!tagPrimary || !shortTagName || !fullPgvectorTag || !latestPgTagName) {
       console.error(`Error: Failed to extract tags for PG ${version}.`);
       process.exit(1);
     }
@@ -129,6 +131,7 @@ async function generateAvailableTagsMarkdown(
     tagsMarkdown += `*   \`${tagPrimary}\`: Specific pgvector and PostgreSQL ${version} version.\n`;
     tagsMarkdown += `*   \`${shortTagName}\`: Latest build for PostgreSQL ${version}.\n`;
     tagsMarkdown += `*   \`${fullPgvectorTag}\`: Specific pgvector, PostgreSQL full version (${postgresFullVer}).\n`;
+    tagsMarkdown += `*   \`${latestPgTagName}\`: Alias for the latest build for PostgreSQL ${version}.\n`;
   }
 
   return tagsMarkdown.trimEnd();

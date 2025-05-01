@@ -18,10 +18,11 @@ export interface ImageVars {
   pgSearchName: string;
   fullImageTag: string;
   tagShort: string;
-  tagFullPgvectorPostgres: string;
+  tagWithFullPostgresVersion: string;
   pgvectorBuilderTag: string;
   imageExists: boolean;
   repoName: string;
+  tagLatestPg: string;
 }
 
 // Default values
@@ -204,13 +205,14 @@ export async function getVars(
   const fullImageTag = `${registry}/${repoName}:${pgvectorBuilderTag}-${bitnamiName}`;
   const tagShort = `${registry}/${repoName}:${pgvectorBuilderTag}`;
   // Construct the tag using only major versions for postgres part
-  const tagFullPgvectorPostgres = `${registry}/${repoName}:${pgvectorBuilderTag}-postgres${pgMajorVersion}`;
+  const tagWithFullPostgresVersion = `${registry}/${repoName}:${pgvectorBuilderTag}-postgres${pgMajorVersion}`;
+  const tagLatestPg = `${registry}/${repoName}:latest-pg${pgMajorVersion}`;
 
   console.log(`Bitnami Base Image: ${bitnamiName}`);
   console.log(`PGVector Base Version: ${pgvectorBaseVersion}`);
   console.log(`Full Image Tag: ${fullImageTag}`);
   console.log(`Short Tag: ${tagShort}`);
-  console.log(`Full PGVector Postgres Tag: ${tagFullPgvectorPostgres}`);
+  console.log(`Full PGVector Postgres Tag: ${tagWithFullPostgresVersion}`);
   console.log(`ParadeDB/pg_search Tag: ${pgSearchName}`);
   console.log(`PGVector Builder Tag Used: ${pgvectorBuilderTag}`);
 
@@ -222,10 +224,11 @@ export async function getVars(
     pgSearchName,
     fullImageTag,
     tagShort,
-    tagFullPgvectorPostgres,
+    tagWithFullPostgresVersion,
     pgvectorBuilderTag,
     imageExists,
     repoName,
+    tagLatestPg,
   };
 
   // Output for GitHub Actions or export locally
@@ -240,13 +243,15 @@ export async function getVars(
 `);
     writer.write(`TAG_SHORT=${vars.tagShort}
 `);
-    writer.write(`TAG_FULL_PGVECTOR_POSTGRES=${vars.tagFullPgvectorPostgres}
+    writer.write(`TAG_WITH_FULL_POSTGRES_VERSION=${vars.tagWithFullPostgresVersion}
 `);
     writer.write(`IMAGE_EXISTS=${vars.imageExists}
 `);
     writer.write(`PG_SEARCH_NAME=${vars.pgSearchName}
 `);
     writer.write(`PGVECTOR_BUILDER_TAG=${vars.pgvectorBuilderTag}
+`);
+    writer.write(`TAG_LATEST_PG=${vars.tagLatestPg}
 `);
     await writer.flush();
     console.log("Variables written to GITHUB_OUTPUT.");
@@ -261,7 +266,7 @@ export async function getVars(
     console.log(`export PGVECTOR_BUILDER_TAG='${vars.pgvectorBuilderTag}'`);
     console.log(`export FULL_IMAGE_TAG='${vars.fullImageTag}'`);
     console.log(`export TAG_SHORT='${vars.tagShort}'`);
-    console.log(`export TAG_FULL_PGVECTOR_POSTGRES='${vars.tagFullPgvectorPostgres}'`);
+    console.log(`export TAG_WITH_FULL_POSTGRES_VERSION='${vars.tagWithFullPostgresVersion}'`);
     console.log(`export IMAGE_EXISTS='${vars.imageExists}'`); // Export image existence status
     const repoRoot = (await $`git rev-parse --show-toplevel`.text()).trim();
     const repoName = Bun.env.REPO_NAME ?? repoRoot.split("/").pop() ?? "unknown-repo";

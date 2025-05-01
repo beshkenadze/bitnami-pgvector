@@ -7,238 +7,192 @@ mock.module("./getVars", () => ({
   getVars: mock(async (pgMajorVersion?: string, options?: { suppressExports?: boolean }) => {
     // Default mock implementation
     console.log(`Mocked getVars called with pgMajorVersion=${pgMajorVersion}, options=${JSON.stringify(options)}`);
+    const pgVer = pgMajorVersion || '16'; // Determine PG version for consistent tags
     return {
-      bitnamiName: `mock-bitnami-pg${pgMajorVersion || '16'}`, // Use pg version in mock
+      bitnamiName: `mock-bitnami-pg${pgVer}`,
       pgvectorBaseVersion: "mock-pgvector-0.7.0",
       pgSearchName: "mock-pgsearch-latest",
-      fullImageTag: `mock-registry/mock-repo:mock-pgvector-0.7.0-pg${pgMajorVersion || '16'}-mock-bitnami-pg${pgMajorVersion || '16'}`, // Consistent tag
-      tagShort: `mock-registry/mock-repo:mock-pgvector-0.7.0-pg${pgMajorVersion || '16'}`, // Consistent tag
-      tagFullPgvectorPostgres: `mock-registry/mock-repo:mock-pgvector-0.7.0-pg${pgMajorVersion || '16'}-postgres${pgMajorVersion || '16'}`, // Consistent tag
-      pgvectorBuilderTag: `mock-pgvector-0.7.0-pg${pgMajorVersion || '16'}`, // Consistent tag
-      imageExists: false,
+      fullImageTag: `mock-registry/mock-repo:mock-pgvector-0.7.0-pg${pgVer}-mock-bitnami-pg${pgVer}`,
+      tagShort: `mock-registry/mock-repo:mock-pgvector-0.7.0-pg${pgVer}`,
+      tagWithFullPostgresVersion: `mock-registry/mock-repo:mock-pgvector-0.7.0-pg${pgVer}-postgres${pgVer}`,
+      tagLatestPg: `mock-registry/mock-repo:latest-pg${pgVer}`,
+      pgvectorBuilderTag: `mock-pgvector-0.7.0-pg${pgVer}`,
+      imageExists: pgVer === '15', // Simulate exists only for PG 15 for testing
       repoName: "mock-repo",
     };
   }),
 }));
 
 // Define the mock shell executor function separately
-// It primarily expects template literal calls based on build.ts usage
 const mockShellExecutor = mock(async (...args: any[]) => {
-    let command: string;
-    // Check if called as a template literal tag: args are [TemplateStringsArray, ...substitutions]
+    let command: string = '';
+    // Check if called as a template literal tag
     if (Array.isArray(args[0]) && 'raw' in args[0]) {
         const pieces = args[0] as unknown as TemplateStringsArray;
-        const substitutions = args.slice(1);
-        // Reconstruct the command string from the template literal parts
-        command = pieces.reduce((acc, piece, i) => acc + piece + (substitutions[i] ?? ""), "");
+        // Check if the command string is passed as a direct variable like `${commandString}`
+        if (pieces.raw.length === 2 && pieces.raw[0] === '' && pieces.raw[1] === '') {
+            // The command string is the first interpolated value
+            command = args[1] as string || '';
+        } else {
+            // Assume standard template literal usage like `cmd arg1 arg2`
+            command = pieces.raw.join(''); // Reconstruct the command
+        }
     } else {
-        // Handle unexpected call signature (e.g., direct array or simple string), unlikely based on build.ts
         command = "Unexpected mock call format";
         console.error(`Unexpected call signature in mockShellExecutor: ${JSON.stringify(args)}`);
-        // Return an error structure consistent with Bun Shell $ process results
         return { exitCode: 1, stdout: Buffer.from(""), stderr: Buffer.from("Unexpected mock call format"), success: false, killed: false };
     }
 
     console.log(`Mocked Shell Executor: Command executed: ${command}`);
 
-    // Simulate outcomes
-    // Default success structure for Bun Shell $ process results
     const successResult = { exitCode: 0, stdout: Buffer.from("mock success"), stderr: Buffer.from(""), success: true, killed: false };
 
-    if (command.startsWith('docker buildx create')) {
-        // build.ts ignores errors here, so return success
+    // Match based on keywords in the command string
+    if (command.includes('docker buildx create')) {
         return successResult;
     }
-    if (command.startsWith('docker buildx build')) {
-        // Simulate successful build
+    if (command.includes('docker buildx build')) {
         return successResult;
     }
 
-    // Default mock behavior for any other commands
     console.warn(`Unhandled command in mockShellExecutor: ${command}`);
-    return successResult; // Default to success for unhandled commands in mock
+    return successResult;
 });
 
 describe("Build Script (build.ts)", () => {
   let consoleLogMock: ReturnType<typeof mock<(typeof console)["log"]>>;
 
   beforeEach(() => {
-    // Reset mocks defined with mock.module
-    mock.restore();
-    // Reset calls for the standalone mock function
-    mockShellExecutor.mock.calls.length = 0;
-    // Clear console mock calls if it exists
+    mock.restore(); // Restore module mocks
+    mockShellExecutor.mockClear(); // Clear the standalone mock executor
     consoleLogMock?.mockClear();
   });
 
   afterEach(() => {
-    // Restore console mock if it was created for the test
     consoleLogMock?.mockRestore();
   });
 
   it("should run build without push or platform", async () => {
-    // Set up console mock for this test
     consoleLogMock = mock(console.log);
-
     const options = { pgMajorVersion: "16" };
+    // Pass the mock executor to runBuild
     await runBuild(options, mockShellExecutor as any, consoleLogMock);
 
-    // Check if getVars was called correctly
     expect(getVarsModule.getVars).toHaveBeenCalledWith(options.pgMajorVersion, { suppressExports: true });
 
-    // Check if docker buildx build was called via the mock executor
-    const buildCommandMockCall = mockShellExecutor.mock.calls.find((call: any[]) => {
-        // Expecting template literal call: shellExecutor`${commandString}`
-        // Arguments are [TemplateStringsArray, ...substitutions]
-        // Here, substitutions should be empty, and the command is the first raw string.
-        const templateArray = call?.[0] as unknown as TemplateStringsArray;
-        return Array.isArray(templateArray?.raw) && templateArray.raw[0]?.startsWith('docker buildx build');
+    // Find the call that executed the build command
+    const buildCommandCall = mockShellExecutor.mock.calls.find(call => {
+        const commandString = (call[0]?.raw?.[0]) || (call?.[1] as string);
+        return typeof commandString === 'string' && commandString.includes('docker buildx build');
     });
-    expect(buildCommandMockCall).toBeDefined();
+    expect(buildCommandCall).toBeDefined(); // Ensure the build call was found
 
-    if (buildCommandMockCall) {
-      // Assert non-null after expect check for TypeScript
-      const templateArray = buildCommandMockCall[0] as unknown as TemplateStringsArray;
-      const commandString = templateArray.raw[0]; // The full command string is here
+    if (buildCommandCall) {
+        // Determine the actual command string based on how the mock was called
+        const commandString = (buildCommandCall[0]?.raw?.[0]) || (buildCommandCall?.[1] as string);
 
-      // Now assert on the extracted commandString
-      expect(commandString).toEqual(expect.stringContaining('docker buildx build'));
-      expect(commandString).toEqual(expect.stringContaining('--build-arg BITNAMI_NAME=mock-bitnami-pg16'));
-      expect(commandString).toEqual(expect.stringContaining('--build-arg PGVECTOR_BUILDER_TAG=mock-pgvector-0.7.0-pg16'));
-      expect(commandString).toEqual(expect.stringContaining('--build-arg PG_MAJOR_VERSION=16'));
-      expect(commandString).toEqual(expect.stringContaining('--build-arg PG_SEARCH_NAME=mock-pgsearch-latest'));
-      expect(commandString).toEqual(expect.stringContaining('--tag mock-registry/mock-repo:mock-pgvector-0.7.0-pg16'));
-      expect(commandString).toEqual(expect.stringContaining('--tag ghcr.io/mock-repo:latest-pg16'));
-      expect(commandString).toContain(' .'); // Context should be present at the end
-      expect(commandString).toContain('-f Dockerfile'); // Expect Dockerfile path
-      expect(commandString).not.toContain('--push');
-      expect(commandString).not.toContain('--platform');
+        // Assertions on the command string
+        expect(commandString).toContain('docker buildx build');
+        expect(commandString).toContain('--build-arg BITNAMI_TAG=mock-bitnami-pg16');
+        expect(commandString).toContain('--build-arg PGVECTOR_BUILDER_TAG=mock-pgvector-0.7.0-pg16');
+        expect(commandString).toContain('--build-arg PG_MAJOR_VERSION=16');
+        expect(commandString).toContain('--build-arg PG_SEARCH_TAG=mock-pgsearch-latest');
+        expect(commandString).toContain('--tag mock-registry/mock-repo:mock-pgvector-0.7.0-pg16');
+        expect(commandString).toContain('--tag mock-registry/mock-repo:latest-pg16');
+        expect(commandString).toContain('-f Dockerfile');
+        expect(commandString).toContain(' .');
+        expect(commandString).not.toContain('--push');
+        expect(commandString).not.toContain('--platform');
     }
 
     // Check console output
     const logs = consoleLogMock.mock.calls.map(call => call[0]);
     expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Build completed successfully!")]));
     expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Image tagged locally as: mock-registry/mock-repo:mock-pgvector-0.7.0-pg16")]));
+    expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Image also tagged locally as: mock-registry/mock-repo:latest-pg16")]));
   });
 
   it("should run build with --push", async () => {
     consoleLogMock = mock(console.log);
-
     const options = { pgMajorVersion: "17", push: true };
     await runBuild(options, mockShellExecutor as any, consoleLogMock);
 
     expect(getVarsModule.getVars).toHaveBeenCalledWith(options.pgMajorVersion, { suppressExports: true });
-
-    const buildCommandMockCall = mockShellExecutor.mock.calls.find((call: any[]) => {
-        const templateArray = call?.[0] as unknown as TemplateStringsArray;
-        return Array.isArray(templateArray?.raw) && templateArray.raw[0]?.startsWith('docker buildx build');
+    const buildCommandCall = mockShellExecutor.mock.calls.find(call => {
+        const commandString = (call[0]?.raw?.[0]) || (call?.[1] as string);
+        return typeof commandString === 'string' && commandString.includes('docker buildx build');
     });
-    expect(buildCommandMockCall).toBeDefined();
+    expect(buildCommandCall).toBeDefined();
 
-    if (buildCommandMockCall) {
-        const templateArray = buildCommandMockCall[0] as unknown as TemplateStringsArray;
-        const commandString = templateArray.raw[0];
-
-        expect(commandString).toEqual(expect.stringContaining('--build-arg BITNAMI_NAME=mock-bitnami-pg17'));
-        expect(commandString).toEqual(expect.stringContaining('--tag ghcr.io/mock-repo:latest-pg17'));
+    if (buildCommandCall) {
+        const commandString = (buildCommandCall[0]?.raw?.[0]) || (buildCommandCall?.[1] as string);
+        expect(commandString).toContain('--build-arg BITNAMI_TAG=mock-bitnami-pg17');
+        expect(commandString).toContain('--tag mock-registry/mock-repo:latest-pg17');
         expect(commandString).toContain('--push');
         expect(commandString).not.toContain('--platform');
         expect(commandString).toContain('-f Dockerfile');
         expect(commandString).toContain(' .');
     }
-
-    // Check console output
-    const logs = consoleLogMock.mock.calls.map(call => call[0]);
-    expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Build completed successfully!")]));
-    expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Image tagged and pushed as: mock-registry/mock-repo:mock-pgvector-0.7.0-pg17")]));
+     // Check console output
+     const logs = consoleLogMock.mock.calls.map(call => call[0]);
+     expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Build completed successfully!")]));
+     expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Image tagged and pushed as: mock-registry/mock-repo:mock-pgvector-0.7.0-pg17")]));
+     expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Image also tagged and pushed as: mock-registry/mock-repo:latest-pg17")]));
   });
 
   it("should run build with --platform", async () => {
     consoleLogMock = mock(console.log);
-
     const options = { pgMajorVersion: "16", platform: "linux/amd64,linux/arm64" };
     await runBuild(options, mockShellExecutor as any, consoleLogMock);
 
     expect(getVarsModule.getVars).toHaveBeenCalledWith(options.pgMajorVersion, { suppressExports: true });
-
-    const buildCommandMockCall = mockShellExecutor.mock.calls.find((call: any[]) => {
-        const templateArray = call?.[0] as unknown as TemplateStringsArray;
-        return Array.isArray(templateArray?.raw) && templateArray.raw[0]?.startsWith('docker buildx build');
+    const buildCommandCall = mockShellExecutor.mock.calls.find(call => {
+        const commandString = (call[0]?.raw?.[0]) || (call?.[1] as string);
+        return typeof commandString === 'string' && commandString.includes('docker buildx build');
     });
-    expect(buildCommandMockCall).toBeDefined();
+    expect(buildCommandCall).toBeDefined();
 
-    if (buildCommandMockCall) {
-        const templateArray = buildCommandMockCall[0] as unknown as TemplateStringsArray;
-        const commandString = templateArray.raw[0];
-
-        expect(commandString).toEqual(expect.stringContaining('--platform linux/amd64,linux/arm64'));
+    if (buildCommandCall) {
+        const commandString = (buildCommandCall[0]?.raw?.[0]) || (buildCommandCall?.[1] as string);
+        expect(commandString).toContain('--platform linux/amd64,linux/arm64');
         expect(commandString).not.toContain('--push');
         expect(commandString).toContain('-f Dockerfile');
         expect(commandString).toContain(' .');
     }
-
-    // Check console output
-    const logs = consoleLogMock.mock.calls.map(call => call[0]);
-    expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Build completed successfully!")]));
+     // Check console output
+     const logs = consoleLogMock.mock.calls.map(call => call[0]);
+     expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Build completed successfully!")]));
   });
 
   it("should skip build if image exists and --push is specified", async () => {
-    consoleLogMock = mock(console.log);
+      consoleLogMock = mock(console.log);
+      const options = { pgMajorVersion: "15", push: true }; // PG 15 mock has imageExists: true
+      await runBuild(options, mockShellExecutor as any, consoleLogMock);
 
-    // Override getVars mock for this specific test
-    (getVarsModule.getVars as any).mockResolvedValueOnce({
-        bitnamiName: "mock-bitnami-pg15",
-        pgvectorBaseVersion: "mock-pgvector-0.7.0",
-        pgSearchName: "mock-pgsearch-latest",
-        fullImageTag: "mock-registry/mock-repo:mock-pgvector-0.7.0-pg15-mock-bitnami-pg15",
-        tagShort: "mock-registry/mock-repo:mock-pgvector-0.7.0-pg15",
-        tagFullPgvectorPostgres: "mock-registry/mock-repo:mock-pgvector-0.7.0-pg15-postgres15",
-        pgvectorBuilderTag: "mock-pgvector-0.7.0-pg15",
-        imageExists: true, // Simulate image exists
-        repoName: "mock-repo",
-      });
+      expect(getVarsModule.getVars).toHaveBeenCalledWith(options.pgMajorVersion, { suppressExports: true });
 
-    const options = { pgMajorVersion: "15", push: true };
-    await runBuild(options, mockShellExecutor as any, consoleLogMock);
+      // Ensure docker build was NOT called
+       const buildCommandCall = mockShellExecutor.mock.calls.find(call => {
+           const commandString = (call[0]?.raw?.[0]) || (call?.[1] as string);
+           return typeof commandString === 'string' && commandString.includes('docker buildx build');
+       });
+       expect(buildCommandCall).toBeUndefined();
 
-    expect(getVarsModule.getVars).toHaveBeenCalledWith(options.pgMajorVersion, { suppressExports: true });
+       // Check console output
+       const skipLogFound = consoleLogMock.mock.calls.some(call =>
+           String(call?.[0]).includes("Image already exists in registry (detected by getVars). Skipping build and push.")
+       );
+       expect(skipLogFound).toBe(true);
 
-    // Ensure docker build was NOT called
-    const buildCommandMockCall = mockShellExecutor.mock.calls.find((call: any[]) => {
-        const templateArray = call?.[0] as unknown as TemplateStringsArray;
-        return Array.isArray(templateArray?.raw) && templateArray.raw[0]?.startsWith('docker buildx build');
+       const completionLogFound = consoleLogMock.mock.calls.some(call =>
+           String(call?.[0]).includes("Build completed successfully!")
+       );
+       expect(completionLogFound).toBe(false);
     });
-    expect(buildCommandMockCall).toBeUndefined();
-
-    // Check console output
-    const skipLogFound = consoleLogMock.mock.calls.some(call =>
-        String(call?.[0]).includes("Image already exists in registry (detected by getVars). Skipping build and push.")
-    );
-    expect(skipLogFound).toBe(true);
-
-    const completionLogFound = consoleLogMock.mock.calls.some(call =>
-        String(call?.[0]).includes("Build completed successfully!")
-    );
-     expect(completionLogFound).toBe(false);
-  });
 
   it("should NOT skip build if image exists but --push is NOT specified", async () => {
     consoleLogMock = mock(console.log);
-
-    // Override getVars mock
-    (getVarsModule.getVars as any).mockResolvedValueOnce({
-        bitnamiName: "mock-bitnami-pg16",
-        pgvectorBaseVersion: "mock-pgvector-0.7.0",
-        pgSearchName: "mock-pgsearch-latest",
-        fullImageTag: "mock-registry/mock-repo:mock-pgvector-0.7.0-pg16-mock-bitnami-pg16",
-        tagShort: "mock-registry/mock-repo:mock-pgvector-0.7.0-pg16",
-        tagFullPgvectorPostgres: "mock-registry/mock-repo:mock-pgvector-0.7.0-pg16-postgres16",
-        pgvectorBuilderTag: "mock-pgvector-0.7.0-pg16",
-        imageExists: true, // Simulate image exists
-        repoName: "mock-repo",
-      });
-
-    const options = { pgMajorVersion: "16" }; // No push flag
+    const options = { pgMajorVersion: "15" }; // PG 15 mock has imageExists: true, no push flag
     await runBuild(options, mockShellExecutor as any, consoleLogMock);
 
     expect(getVarsModule.getVars).toHaveBeenCalledWith(options.pgMajorVersion, { suppressExports: true });
@@ -248,15 +202,14 @@ describe("Build Script (build.ts)", () => {
     expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Image already exists locally or in registry (detected by getVars), but continuing with local build as --push was not specified.")]));
 
     // Ensure docker build WAS called
-    const buildCommandMockCall = mockShellExecutor.mock.calls.find((call: any[]) => {
-        const templateArray = call?.[0] as unknown as TemplateStringsArray;
-        return Array.isArray(templateArray?.raw) && templateArray.raw[0]?.startsWith('docker buildx build');
+    const buildCommandCall = mockShellExecutor.mock.calls.find(call => {
+        const commandString = (call[0]?.raw?.[0]) || (call?.[1] as string);
+        return typeof commandString === 'string' && commandString.includes('docker buildx build');
     });
-    expect(buildCommandMockCall).toBeDefined();
+    expect(buildCommandCall).toBeDefined();
 
-    if (buildCommandMockCall) {
-        const templateArray = buildCommandMockCall[0] as unknown as TemplateStringsArray;
-        const commandString = templateArray.raw[0];
+    if (buildCommandCall) {
+        const commandString = (buildCommandCall[0]?.raw?.[0]) || (buildCommandCall?.[1] as string);
         expect(commandString).not.toContain('--push');
         expect(commandString).toContain('-f Dockerfile');
         expect(commandString).toContain(' .');
@@ -264,6 +217,4 @@ describe("Build Script (build.ts)", () => {
     expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Build completed successfully!")]));
   });
 
-  // Add tests for error handling (e.g., getVars fails, docker build fails)
-  // Note: Testing process.exit requires more complex mocking or test setup
 }); 

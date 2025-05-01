@@ -331,9 +331,10 @@ describe("getVars", () => {
       "docker.io/my-custom-repo:0.7.0-pg17-17.2.0-debian-12-r1"
     );
     expect(vars.tagShort).toBe("docker.io/my-custom-repo:0.7.0-pg17");
-    expect(vars.tagFullPgvectorPostgres).toBe(
+    expect(vars.tagWithFullPostgresVersion).toBe(
       "docker.io/my-custom-repo:0.7.0-pg17-postgres17"
     );
+    expect(vars.tagLatestPg).toBe("docker.io/my-custom-repo:latest-pg17");
     expect(vars.pgvectorBuilderTag).toBe("0.7.0-pg17");
     expect(vars.pgSearchName).toBe("0.15.18-pg17");
     expect(vars.imageExists).toBe(false);
@@ -362,9 +363,10 @@ describe("getVars", () => {
       "ghcr.io/bitnami-pgvector:0.8.0-pg17-17.2.0-debian-12-r1"
     );
     expect(vars.tagShort).toBe("ghcr.io/bitnami-pgvector:0.8.0-pg17");
-    expect(vars.tagFullPgvectorPostgres).toBe(
+    expect(vars.tagWithFullPostgresVersion).toBe(
       "ghcr.io/bitnami-pgvector:0.8.0-pg17-postgres17"
     );
+    expect(vars.tagLatestPg).toBe("ghcr.io/bitnami-pgvector:latest-pg17");
     expect(vars.pgvectorBuilderTag).toBe("0.8.0-pg17");
     expect(vars.pgSearchName).toBe("0.15.18-pg17");
     expect(vars.imageExists).toBe(false);
@@ -379,10 +381,11 @@ describe("getVars", () => {
     );
     expect(vars.tagShort).toBe("ghcr.io/bitnami-pgvector:0.8.0-pg404");
     expect(vars.pgSearchName).toBe("latest-pg404"); // Corrected expected default
-    expect(vars.tagFullPgvectorPostgres).toBe(
-      "docker.io/my-custom-repo:0.7.0-pg404-postgres17"
+    expect(vars.tagWithFullPostgresVersion).toBe(
+      "ghcr.io/bitnami-pgvector:0.8.0-pg404-postgres404"
     );
-    expect(vars.pgvectorBuilderTag).toBe("0.7.0-pg404");
+    expect(vars.tagLatestPg).toBe("ghcr.io/bitnami-pgvector:latest-pg404");
+    expect(vars.pgvectorBuilderTag).toBe("0.8.0-pg404");
     expect(vars.imageExists).toBe(false);
     // Verify warning messages
     expect(warnSpy).toHaveBeenCalledWith(
@@ -410,10 +413,11 @@ describe("getVars", () => {
     );
     expect(vars.tagShort).toBe("ghcr.io/bitnami-pgvector:0.8.0-pg99");
     expect(vars.pgSearchName).toBe("latest-pg99"); // Corrected expected default
-    expect(vars.tagFullPgvectorPostgres).toBe(
-      "docker.io/my-custom-repo:0.7.0-pg99-postgres17"
+    expect(vars.tagWithFullPostgresVersion).toBe(
+      "ghcr.io/bitnami-pgvector:0.8.0-pg99-postgres99"
     );
-    expect(vars.pgvectorBuilderTag).toBe("0.7.0-pg99");
+    expect(vars.tagLatestPg).toBe("ghcr.io/bitnami-pgvector:latest-pg99");
+    expect(vars.pgvectorBuilderTag).toBe("0.8.0-pg99");
     expect(vars.imageExists).toBe(false);
 
     // Verify warning messages
@@ -493,13 +497,16 @@ describe("getVars", () => {
       expect.stringContaining("TAG_SHORT=")
     );
     expect(writeMock).toHaveBeenCalledWith(
-      expect.stringContaining("TAG_FULL_PGVECTOR_POSTGRES=")
+      expect.stringContaining("TAG_WITH_FULL_POSTGRES_VERSION=")
     );
     expect(writeMock).toHaveBeenCalledWith(
       expect.stringContaining("IMAGE_EXISTS=")
     );
     expect(writeMock).toHaveBeenCalledWith(
       expect.stringContaining("PG_SEARCH_NAME=")
+    );
+    expect(writeMock).toHaveBeenCalledWith(
+      expect.stringContaining("TAG_LATEST_PG=")
     );
     expect(writeMock).toHaveBeenCalledWith(
       expect.stringContaining("PGVECTOR_BUILDER_TAG=")

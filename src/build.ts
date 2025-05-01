@@ -61,15 +61,15 @@ async function runBuild(options: BuildOptions, shellExecutor: any = defaultShell
   logger("Building Docker image...");
 
   const buildArgs = [
-    `--build-arg BITNAMI_NAME='${buildVars.bitnamiName}'`,
+    `--build-arg BITNAMI_TAG='${buildVars.bitnamiName}'`,
     `--build-arg PGVECTOR_BUILDER_TAG='${buildVars.pgvectorBuilderTag}'`,
     `--build-arg PG_MAJOR_VERSION='${options.pgMajorVersion}'`,
-    `--build-arg PG_SEARCH_NAME='${buildVars.pgSearchName}'`, // Added pgSearchName
+    `--build-arg PG_SEARCH_TAG='${buildVars.pgSearchName}'`,
   ];
 
   const tags = [
     `--tag '${buildVars.tagShort}'`, // Use tagShort from getVars
-    `--tag 'ghcr.io/${buildVars.repoName}:latest-pg${options.pgMajorVersion}'`, // Use repoName from getVars
+    `--tag '${buildVars.tagLatestPg}'`, // Use tagLatestPg from getVars
   ];
 
   const platformArg = options.platform ? `--platform ${options.platform}` : "";
@@ -85,14 +85,14 @@ async function runBuild(options: BuildOptions, shellExecutor: any = defaultShell
   const baseCmd = ["docker", "buildx", "build"];
   const platformCmd = options.platform ? ["--platform", options.platform] : [];
   const buildArgsCmd = [
-    "--build-arg", `BITNAMI_NAME=${buildVars.bitnamiName}`,
+    "--build-arg", `BITNAMI_TAG=${buildVars.bitnamiName}`,
     "--build-arg", `PGVECTOR_BUILDER_TAG=${buildVars.pgvectorBuilderTag}`,
     "--build-arg", `PG_MAJOR_VERSION=${options.pgMajorVersion}`,
-    "--build-arg", `PG_SEARCH_NAME=${buildVars.pgSearchName}`,
+    "--build-arg", `PG_SEARCH_TAG=${buildVars.pgSearchName}`,
   ];
   const tagsCmd = [
     "--tag", buildVars.tagShort,
-    "--tag", `ghcr.io/${buildVars.repoName}:latest-pg${options.pgMajorVersion}`,
+    "--tag", buildVars.tagLatestPg, // Use tagLatestPg from getVars
   ];
   const pushCmd = options.push ? ["--push"] : [];
   const context = ["."];
@@ -108,7 +108,7 @@ async function runBuild(options: BuildOptions, shellExecutor: any = defaultShell
   await shellExecutor`${commandString}`;
 
   logger("Build completed successfully!");
-  const latestTag = `ghcr.io/${buildVars.repoName}:latest-pg${options.pgMajorVersion}`;
+  const latestTag = buildVars.tagLatestPg; // Use tagLatestPg from getVars
   if (options.push) {
     logger(`Image tagged and pushed as: ${buildVars.tagShort}`);
     logger(`Image also tagged and pushed as: ${latestTag}`);

@@ -40,10 +40,12 @@ docker pull ghcr.io/beshkenadze/bitnami-pgvector:latest
 *   `latest`: Latest build based on PostgreSQL 17.
 *   `bitnami-pgvector:0.8.0-pg16-16.6.0-debian-12-r2`: Specific pgvector and PostgreSQL 16 version.
 *   `bitnami-pgvector:0.8.0-pg16`: Latest build for PostgreSQL 16.
-*   `bitnami-pgvector:0.8.0-postgres16`: Specific pgvector, PostgreSQL full version (16.6.0).
+*   `bitnami-pgvector:0.8.0-pg16-postgres16`: Specific pgvector, PostgreSQL full version (16.6.0).
+*   `bitnami-pgvector:latest-pg16`: Alias for the latest build for PostgreSQL 16.
 *   `bitnami-pgvector:0.8.0-pg17-17.4.0-debian-12-r17`: Specific pgvector and PostgreSQL 17 version.
 *   `bitnami-pgvector:0.8.0-pg17`: Latest build for PostgreSQL 17.
-*   `bitnami-pgvector:0.8.0-postgres17`: Specific pgvector, PostgreSQL full version (17.4.0).
+*   `bitnami-pgvector:0.8.0-pg17-postgres17`: Specific pgvector, PostgreSQL full version (17.4.0).
+*   `bitnami-pgvector:latest-pg17`: Alias for the latest build for PostgreSQL 17.
 <!-- AVAILABLE_TAGS_END -->
 
 ## Features
@@ -144,8 +146,11 @@ The script will:
 
 The images are tagged using the following format:
 
-- `latest`: Latest successful build (points to the highest PostgreSQL version, currently `pg17`)
-- `pg{VERSION}`: Latest build for a specific PostgreSQL major version (e.g., `pg17`, `pg16`)
+- `latest`: Latest successful build (points to the highest supported PostgreSQL version, currently based on `pg17`)
+- `latest-pg{VERSION}`: Latest build for a specific PostgreSQL major version (e.g., `latest-pg17`, `latest-pg16`). This is an alias for the short tag below.
+- `{PGVECTOR_VERSION}-pg{POSTGRES_VERSION}`: Specific pgvector version combined with the PostgreSQL major version (e.g., `0.8.0-pg17`, `0.8.0-pg16`). This tag always points to the latest Bitnami base image revision for that combination.
+
+More specific tags including the full Bitnami image version are also available (see the "Available tags" section above) but are less commonly used directly.
 
 ## Contributing
 
