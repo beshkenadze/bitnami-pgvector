@@ -34,55 +34,58 @@ program
   .option("-s, --silent", "Suppress non-essential output");
 
 /**
- * Updates the pgvector badge in the README.md file
+ * Updates a generic badge in the README.md file
  */
-async function updatePgvectorBadge(
+async function updateBadge(
+  readmeContent: string,
+  badgeName: string,
+  version: string,
+  color: string,
   readmeFile: string,
-  primaryVersion: number,
   dryRun: boolean,
   silent: boolean
-): Promise<string> {
-  if (!silent)
-    console.log(
-      `Determining pgvector version for PostgreSQL ${primaryVersion}...`
-    );
-
-  // Get variables from getVars for the primary PG version
-  const vars = await getVars(primaryVersion.toString());
-  // Extract version number (e.g., "0.7.0") from base version (e.g., "pgvector-0.7.0")
-  const baseVersion = vars.pgvectorBaseVersion;
-  const versionParts = baseVersion?.split('-');
-  const pgvectorVersion = versionParts?.[versionParts.length - 1];
-
-  if (!pgvectorVersion) {
-    console.error(
-      `Error: Could not determine pgvector version for PG ${primaryVersion}`
-    );
-    process.exit(1);
+): Promise<{ updatedContent: string; changed: boolean }> {
+  if (!version) {
+    if (!silent) console.warn(`Warning: Could not determine version for ${badgeName} badge. Skipping update.`);
+    return { updatedContent: readmeContent, changed: false };
   }
+  if (!silent) console.log(`Updating ${badgeName} badge to version ${version}...`);
 
-  if (!silent)
-    console.log(`Found primary pgvector version: ${pgvectorVersion}`);
-
-  // Read README.md content
-  const readmeContent = readFileSync(readmeFile, "utf-8");
-
-  // Update the badge using regex, similar to the sed command in the shell script
-  const updatedContent = readmeContent.replace(
-    /img\.shields\.io\/badge\/pgvector-[0-9.]*-green\.svg/,
-    `img.shields.io/badge/pgvector-${pgvectorVersion}-green.svg`
+  
+  // Update the badge using regex
+  const pattern = new RegExp(
+    // Simplified pattern: Match badge name, anything up to the last hyphen before color, then color.svg
+    `img\.shields\.io\/badge\/${badgeName}-.*-${color}\.svg`,
+    "i" // Case-insensitive match for badge name
   );
 
-  // If it's a dry run, just return the updated content
-  if (dryRun) {
-    return updatedContent;
+  // Escape hyphens for shields.io message format, then URL encode
+  const escapedVersion = version.replace(/-/g, "--"); // Replace - with --
+  const encodedVersion = encodeURIComponent(escapedVersion); // URL-encode the escaped version
+  const escapedBadgeName = badgeName.replace(/-/g, "--");
+  const replacement = `img.shields.io/badge/${escapedBadgeName}-${encodedVersion}-${color}.svg?logo=postgresql&logoColor=white`; // Use encoded version
+
+  // Check if replacement is needed
+  if (!pattern.test(readmeContent)) {
+    if (!silent) console.warn(`Warning: Pattern for ${badgeName} badge not found in ${readmeFile}. Skipping update.`);
+    return { updatedContent: readmeContent, changed: false };
   }
 
-  // Write updated content back to README.md
-  writeFileSync(readmeFile, updatedContent);
-  if (!silent) console.log("pgvector badge updated successfully.");
+  const updatedContent = readmeContent.replace(pattern, replacement);
+  const changed = updatedContent !== readmeContent;
 
-  return updatedContent;
+  if (changed && !dryRun) {
+    // Write updated content back to README.md immediately if changed and not dry run
+    // Note: This means intermediate writes happen per badge. Could optimize later if needed.
+    writeFileSync(readmeFile, updatedContent);
+    if (!silent) console.log(`${badgeName} badge updated successfully.`);
+  } else if (changed && dryRun && !silent) {
+    console.log(`[Dry Run] Would update ${badgeName} badge.`);
+  } else if (!changed && !silent) {
+    if (!silent) console.log(`${badgeName} badge already up-to-date.`);
+  }
+
+  return { updatedContent, changed };
 }
 
 /**
@@ -225,19 +228,71 @@ async function main(): Promise<void> {
       console.log("--- DRY RUN MODE - No files will be modified ---");
     }
 
+    // Read the initial content only once if not doing dry run or verbose output required later
     let readmeContent = "";
+    try {
+      readmeContent = readFileSync(readmeFile, "utf-8");
+    } catch (err) {
+      console.error(`Error reading README file "${readmeFile}":`, err);
+      process.exit(1);
+    }
+    let contentChangedOverall = false;
 
-    // Update pgvector badge if not tags-only
+    // Determine primary versions for badges
+    const primaryVars = await getVars(primaryVersion.toString());
+    // Extract version number (e.g., "0.7.0") from base version (e.g., "pgvector-0.7.0")
+    const pgvectorVersion = primaryVars.pgvectorBaseVersion?.split('-').pop();
+    // Extract pg_search version (e.g., 0.15.18) from name (e.g., owner/repo:0.15.18-pg17)
+    let pgSearchVersion = undefined;
+    if (primaryVars.pgSearchName) {
+      const namePart = primaryVars.pgSearchName.includes(':')
+        ? primaryVars.pgSearchName.split(':').pop()
+        : primaryVars.pgSearchName;
+      // Take the part before the first hyphen (if any)
+      pgSearchVersion = namePart?.split('-')[0];
+    }
+
+    // Update badges if not tags-only
     if (!options.tagsOnly) {
-      readmeContent = await updatePgvectorBadge(
+      // Update pgvector badge
+      const pgvectorResult = await updateBadge(
+        readmeContent,
+        "pgvector", // badge name in URL path
+        pgvectorVersion ?? "", // Pass empty string if undefined
+        "green",
         readmeFile,
-        primaryVersion,
         dryRun,
         silent
       );
-    } else if (!dryRun) {
-      // If we're only updating tags but need the readme content for that
-      readmeContent = readFileSync(readmeFile, "utf-8");
+      if (pgvectorResult.changed) {
+        readmeContent = pgvectorResult.updatedContent; // Update content for next step
+        contentChangedOverall = true;
+      }
+
+      // Determine the string to use for the pg_search badge message
+      let pgSearchStringForBadge = undefined;
+      if (primaryVars.pgSearchName) {
+        // Example pgSearchName: 'owner/repo:0.15.18-pg17' or '0.15.18-pg17' or 'latest-pg17'
+        pgSearchStringForBadge = primaryVars.pgSearchName.includes(':')
+          ? primaryVars.pgSearchName.split(':').pop() ?? '' // Get '0.15.18-pg17' or 'latest-pg17'
+          : primaryVars.pgSearchName;
+      }
+
+      // Update pg_search badge
+      if (!silent) console.log(`>>> Determined pg_search version string for badge: ${pgSearchStringForBadge ?? 'undefined'}`);
+      const pgSearchResult = await updateBadge(
+        readmeContent,
+        "pg_search", // badge name in URL path
+        pgSearchStringForBadge ?? "", // Pass the full string like '0.15.18-pg17'
+        "blue",
+        readmeFile,
+        dryRun,
+        silent
+      );
+      if (pgSearchResult.changed) {
+        readmeContent = pgSearchResult.updatedContent; // Update content for next step
+        contentChangedOverall = true;
+      }
     }
 
     // Update available tags section if not badge-only
@@ -249,32 +304,32 @@ async function main(): Promise<void> {
         silent
       );
 
-      // If we have the readme content (from badge update or reading it), use that
-      if (readmeContent) {
-        await updateAvailableTagsSection(
-          readmeContent,
-          tagsMarkdown,
-          readmeFile,
-          dryRun,
-          silent
-        );
-      } else {
-        // Otherwise read the readme content first
-        const content = readFileSync(readmeFile, "utf-8");
-        await updateAvailableTagsSection(
-          content,
-          tagsMarkdown,
-          readmeFile,
-          dryRun,
-          silent
-        );
+      // Update the tags section using the potentially modified readmeContent
+      const tagsResult = await updateAvailableTagsSection(
+        readmeContent, // Use potentially updated content
+        tagsMarkdown,
+        readmeFile,
+        dryRun,
+        silent
+      );
+      // Note: updateAvailableTagsSection writes the file itself if not dryRun
+      if (tagsResult !== readmeContent) { // Compare with content *before* tag update
+        contentChangedOverall = true;
+        // readmeContent = tagsResult; // updateAvailableTagsSection handles the write
       }
     }
 
     if (dryRun && !silent) {
-      console.log("--- DRY RUN COMPLETE - No files were modified ---");
+      console.log("--- DRY RUN COMPLETE ---");
+      if (!contentChangedOverall) {
+        console.log("No changes detected.");
+      }
     } else if (!silent) {
-      console.log("README update complete.");
+      if (contentChangedOverall) {
+        console.log(`README update complete. File "${readmeFile}" modified.`);
+      } else {
+        console.log(`README update complete. File "${readmeFile}" already up-to-date.`);
+      }
     }
   } catch (error) {
     console.error("Error updating README:", error);
@@ -289,6 +344,6 @@ if (import.meta.main) {
 
 // Export for testing
 export {
-  generateAvailableTagsMarkdown, main, updateAvailableTagsSection, updatePgvectorBadge
+  generateAvailableTagsMarkdown, main, updateAvailableTagsSection, updateBadge
 };
 

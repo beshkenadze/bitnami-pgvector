@@ -9,7 +9,7 @@
     "update-readme": "bun run src/updateReadmeBadge.ts",
     "update-readme-badge": "bun run src/updateReadmeBadge.ts --badgeOnly",
     "update-readme-tags": "bun run src/updateReadmeBadge.ts --tagsOnly",
-    "update-readme-all": "bun run src/updateReadmeBadge.ts --all",
+    "update-readme-all": "bun run src/updateReadmeBadge.ts",
     "docker-build": "bun run src/build.ts",
     "get-vars": "bun run src/getVars.ts",
     "test": "bun test",

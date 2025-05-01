@@ -1,4 +1,4 @@
-[![GitHub Workflow Status](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/build.yml/badge.svg)](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/build.yml) [![Running Tests](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/test.yml/badge.svg)](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/test.yml) [![pgvector Version](https://img.shields.io/badge/pgvector-0.8.0-green.svg)](https://github.com/pgvector/pgvector/releases) [![PostgreSQL Versions](https://img.shields.io/badge/PostgreSQL-16%20%7C%2017-blue.svg)](https://www.postgresql.org/) [![GHCR latest](https://img.shields.io/badge/GHCR-latest-blue)](https://github.com/beshkenadze/bitnami-pgvector/pkgs/container/bitnami-pgvector) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub Workflow Status](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/build.yml/badge.svg)](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/build.yml) [![Running Tests](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/test.yml/badge.svg)](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/test.yml) [![pgvector](https://img.shields.io/badge/pgvector-0.8.0-green.svg?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector/releases) [![pg_search](https://img.shields.io/badge/pg_search-0.15.18--pg17-blue.svg?logo=postgresql&logoColor=white)](https://github.com/paradedb/paradedb/tree/dev/pg_search) [![PostgreSQL Versions](https://img.shields.io/badge/PostgreSQL-16%20%7C%2017-blue.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/) [![GHCR latest](https://img.shields.io/badge/GHCR-latest-blue)](https://github.com/beshkenadze/bitnami-pgvector/pkgs/container/bitnami-pgvector) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 # Bitnami PostgreSQL with pgvector Extension
 
@@ -38,13 +38,14 @@ docker pull ghcr.io/beshkenadze/bitnami-pgvector:latest
 <!-- AVAILABLE_TAGS_START -->
 
 *   `latest`: Latest build based on PostgreSQL 17.
-*   `bitnami-pgvector:0.8.0-pg16-16.6.0-debian-12-r2`: Specific pgvector and PostgreSQL 16 version.
-*   `bitnami-pgvector:0.8.0-pg16`: Latest build for PostgreSQL 16.
-*   `bitnami-pgvector:0.8.0-pg16-postgres16`: Specific pgvector, PostgreSQL full version (16.6.0).
+*   `bitnami-pgvector:sha-06ae7b01bca9b86c33f89829c5379ef7bc7246d0beafa68cd9f384428dcca54b`: SHA256 hash tag representing the specific combination of PG, pgvector, and pg_search versions used in the latest build.
+*   `bitnami-pgvector:0.8.0-pg16-16.6.0-debian-12-r2`: Specific pgvector, pg_search (0.15.18-pg16), and PostgreSQL 16 version.
+*   `bitnami-pgvector:0.8.0-pg16`: Latest build for PostgreSQL 16 (includes pgvector & pg_search).
+*   `bitnami-pgvector:0.8.0-pg16-postgres16`: Specific pgvector, pg_search (0.15.18-pg16), PostgreSQL full version (16.6.0).
 *   `bitnami-pgvector:latest-pg16`: Alias for the latest build for PostgreSQL 16.
-*   `bitnami-pgvector:0.8.0-pg17-17.4.0-debian-12-r17`: Specific pgvector and PostgreSQL 17 version.
-*   `bitnami-pgvector:0.8.0-pg17`: Latest build for PostgreSQL 17.
-*   `bitnami-pgvector:0.8.0-pg17-postgres17`: Specific pgvector, PostgreSQL full version (17.4.0).
+*   `bitnami-pgvector:0.8.0-pg17-17.4.0-debian-12-r17`: Specific pgvector, pg_search (0.15.18-pg17), and PostgreSQL 17 version.
+*   `bitnami-pgvector:0.8.0-pg17`: Latest build for PostgreSQL 17 (includes pgvector & pg_search).
+*   `bitnami-pgvector:0.8.0-pg17-postgres17`: Specific pgvector, pg_search (0.15.18-pg17), PostgreSQL full version (17.4.0).
 *   `bitnami-pgvector:latest-pg17`: Alias for the latest build for PostgreSQL 17.
 <!-- AVAILABLE_TAGS_END -->
 
