@@ -13,38 +13,15 @@ ARG PG_MAJOR_VERSION
 # Set shared_preload_libraries to include pg_search
 ENV POSTGRESQL_SHARED_PRELOAD_LIBRARIES="pg_search"
 
-# Install dependencies, including build tools for ICU
 # Ensure root user for package installation
 USER root
 
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    # Build tools needed for ICU compilation
-    build-essential \
-    wget \
-    make \
-    gcc \
-    # Other dependencies (if any are identified later)
-    && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Copy ICU libraries and data from the pg_search builder stage
+COPY --from=builder-pg_search /usr/local/lib/libicu* /usr/local/lib/
+COPY --from=builder-pg_search /usr/local/share/icu /usr/local/share/icu
 
-# Download, compile, and install ICU 76.1 (required by pg_search from paradedb)
-WORKDIR /tmp
-RUN wget -q https://github.com/unicode-org/icu/releases/download/release-76-1/icu4c-76_1-src.tgz && \
-    tar xzvf icu4c-76_1-src.tgz && \
-    rm -rf icu4c-76_1-src.tgz && \
-    cd /tmp/icu/source && \
-    ./runConfigureICU Linux --prefix=/usr/local && \
-    make "-j$(nproc)" && \
-    make install && \
-    cd / && \
-    rm -rf /tmp/icu && \
-    ldconfig && ldconfig # Run ldconfig twice as per paradedb example
-
-# Optional: Remove build tools after compiling ICU to reduce image size
-RUN apt-get purge -y --auto-remove build-essential wget make gcc && \
-    rm -rf /var/lib/apt/lists/*
+# Update linker cache
+RUN ldconfig && ldconfig
 
 # Switch back to default postgres user
 USER 1001

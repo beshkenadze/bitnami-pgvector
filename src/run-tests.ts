@@ -31,8 +31,8 @@ async function runTests(pgMajorVersion: string) {
   try {
     console.log(`Fetching variables for PG ${pgMajorVersion}...`);
     const vars = await getVars(pgMajorVersion, { suppressExports: true });
-    // Use tagShort which is reliably loaded locally by buildx build without --load
-    const imageTag = vars.tagShort;
+    // Revert back to tagShort, which IS tagged locally by build.ts
+    const imageTag = vars.tagShort; // Use tagShort again
     if (!imageTag) {
         console.error(`Could not determine a valid image tag (tagShort) for PG ${pgMajorVersion}.`);
         process.exit(1);
@@ -49,6 +49,7 @@ async function runTests(pgMajorVersion: string) {
     const runResult = await $`docker run -d --name ${containerName} \
         -e POSTGRES_USER=${TEST_DB_USER} \
         -e POSTGRES_PASSWORD=${TEST_DB_PASSWORD} \
+        -e POSTGRES_POSTGRES_PASSWORD=${TEST_DB_PASSWORD} \
         -e POSTGRES_DB=${TEST_DB_NAME} \
         -p ${TEST_DB_PORT}:5432 \
         ${imageTag}`.nothrow();
@@ -64,6 +65,21 @@ async function runTests(pgMajorVersion: string) {
     if (!await waitForDbReady(containerName)) {
         throw new Error("Database failed to become ready.");
     }
+
+    // --- Grant Superuser Privileges --- 
+    console.log("Waiting briefly before granting privileges...");
+    await Bun.sleep(3000); // Add a 3-second delay
+    
+    console.log(`Granting superuser privileges to ${TEST_DB_USER}...`);
+    // Switch back to using the 'postgres' user, hoping the delay helps
+    const grantResult = await $`docker exec -e PGPASSWORD=${TEST_DB_PASSWORD} ${containerName} psql -U postgres -d ${TEST_DB_NAME} -c "ALTER USER ${TEST_DB_USER} WITH SUPERUSER;"`.nothrow();
+    if (grantResult.exitCode !== 0) {
+        console.error(`Failed to grant superuser privileges to ${TEST_DB_USER}.`);
+        console.error("Stderr:", grantResult.stderr.toString());
+        // Decide if this should be a fatal error
+        throw new Error("Failed to grant superuser privileges."); 
+    }
+    console.log(`Superuser privileges granted to ${TEST_DB_USER}.`);
 
     // --- Set Environment Variables for Tests ---
     process.env.PGHOST = "localhost";

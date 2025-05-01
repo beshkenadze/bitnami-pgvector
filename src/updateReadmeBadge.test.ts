@@ -29,7 +29,7 @@ const sampleReadmeContent = `
 const mockVarsResponse: getVarsModule.ImageVars = {
   bitnamiName: "17.4.0-debian-12-r17",
   pgvectorBaseVersion: "pgvector-0.8.0",
-  pgSearchName: "pgsearch-latest",
+  pgSearchName: "paradedb/paradedb:0.1.0-pg17",
   fullImageTag: "ghcr.io/bitnami-pgvector:0.8.0-pg17-17.4.0-debian-12-r17",
   tagShort: "ghcr.io/bitnami-pgvector:0.8.0-pg17",
   tagWithFullPostgresVersion: "ghcr.io/bitnami-pgvector:0.8.0-pg17-postgres17",
@@ -38,7 +38,7 @@ const mockVarsResponse: getVarsModule.ImageVars = {
   repoName: "bitnami-pgvector",
   imageExists: false,
   versionHash: "mockHash17",
-  versionsHashTag: "mockVersionsHash17",
+  versionsHashTag: "ghcr.io/bitnami-pgvector:sha-mockHash17",
 };
 
 // Mock fs module functions
@@ -100,7 +100,7 @@ beforeAll(() => {
         return {
           bitnamiName: "16.6.0-debian-12-r2",
           pgvectorBaseVersion: "pgvector-0.8.0",
-          pgSearchName: "pgsearch-latest",
+          pgSearchName: "paradedb/paradedb:0.1.0-pg16",
           fullImageTag:
             "ghcr.io/bitnami-pgvector:0.8.0-pg16-16.6.0-debian-12-r2",
           tagShort: "ghcr.io/bitnami-pgvector:0.8.0-pg16",
@@ -110,7 +110,7 @@ beforeAll(() => {
           repoName: "bitnami-pgvector",
           imageExists: false,
           versionHash: "mockHash16",
-          versionsHashTag: "mockVersionsHash16",
+          versionsHashTag: "ghcr.io/bitnami-pgvector:sha-mockHash16",
         };
       }
       // Return the default mock response (already typed as ImageVars)
@@ -206,6 +206,10 @@ describe("updateReadmeBadge", () => {
     // Should include the new tags
     expect(updatedContent).toContain("bitnami-pgvector:0.8.0-pg17");
     expect(updatedContent).toContain("bitnami-pgvector:0.8.0-pg16");
+    // Check for pg_search info and hash tag
+    expect(updatedContent).toContain("pg_search (0.1.0-pg17)");
+    expect(updatedContent).toContain("pg_search (0.1.0-pg16)");
+    expect(updatedContent).toContain(":sha-mockHash17");
 
     // Should not contain the old tag info
     expect(updatedContent).not.toContain("`old-tag`: Old tag information.");

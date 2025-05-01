@@ -226,34 +226,23 @@ export async function getVars(
     console.log(">>> Starting hash calculation...");
     // --- Start Hash Calculation ---
     const versionString = `pg:${pgMajorVersion}-pgvector:${pgvectorBaseVersion}-pgsearch:${pgSearchName}`;
-    console.log(">>> HASH: Got versionString");
 
     // Use Bun.CryptoHasher instead of crypto.subtle.digest
     const hasher = new Bun.CryptoHasher("sha256");
     hasher.update(versionString);
     const hashArray = hasher.digest(); // Returns Uint8Array by default
-    console.log(">>> HASH: Got hash Uint8Array from Bun.CryptoHasher"); // UPDATED LOG
 
     // No need to convert from ArrayBuffer, digest() returns Uint8Array directly
-    // const hashArray = Array.from(new Uint8Array(hashBuffer));
-    console.log(">>> HASH: Got hashArray (already Uint8Array)"); // UPDATED LOG
     versionHash = Buffer.from(hashArray).toString('hex'); // Convert Uint8Array to hex string
-    console.log(">>> HASH: Got versionHash");
     console.log(`Version Combination Hash: ${versionHash}`);
     // Construct the hash tag
-    console.log(">>> HASH: Getting repoRoot...");
     const repoRoot = (await $`git rev-parse --show-toplevel`.text()).trim();
-    console.log(">>> HASH: Got repoRoot");
     const repoName = Bun.env.REPO_NAME ?? repoRoot.split("/").pop() ?? "unknown-repo";
-    console.log(">>> HASH: Got repoName");
     versionsHashTag = `${registry}/${repoName}:sha-${versionHash}`;
-    console.log(">>> HASH: Got versionsHashTag");
     console.log(`Versions Hash Tag for Existence Check: ${versionsHashTag}`);
     // --- End Hash Calculation ---
 
-    console.log(">>> Starting image existence check...");
     imageExists = await checkImageExists(versionsHashTag);
-    console.log(">>> Finished image existence check.");
 
   } catch (error) {
     console.error(">>> ERROR during hash calculation or image check:", error);

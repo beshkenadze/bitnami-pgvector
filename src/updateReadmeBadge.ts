@@ -100,6 +100,12 @@ async function generateAvailableTagsMarkdown(
   // Add the 'latest' tag first
   tagsMarkdown += `*   \`latest\`: Latest build based on PostgreSQL ${primaryVersion}.\n`;
 
+  // Get vars for the primary version to add the hash tag once
+  const primaryVars = await getVars(primaryVersion.toString());
+  if (primaryVars.versionsHashTag) {
+    tagsMarkdown += `*   \`${primaryVars.versionsHashTag.split('/').pop()}\`: SHA256 hash tag representing the specific combination of PG, pgvector, and pg_search versions used in the latest build.\n`;
+  }
+
   // Loop through supported versions to generate tags
   for (const version of supportedVersions) {
     if (!silent) console.log(`- Processing PG ${version}...`);
@@ -112,6 +118,7 @@ async function generateAvailableTagsMarkdown(
     const tagShort = vars.tagShort;
     const tagWithFullPostgresVersion = vars.tagWithFullPostgresVersion;
     const tagLatestPg = vars.tagLatestPg;
+    const pgSearchName = vars.pgSearchName; // Get pg_search name
 
     // Extract tag names from full references
     const tagPrimary = fullImageTag.split("/").pop();
@@ -126,11 +133,13 @@ async function generateAvailableTagsMarkdown(
 
     // Extract PostgreSQL full version (e.g., 17.2.0) from Bitnami name
     const postgresFullVer = vars.bitnamiName.split("-")[0];
+    // Extract pg_search version/identifier if available
+    const pgSearchVer = pgSearchName?.split(':').pop() ?? 'unknown';
 
     // Append tags to markdown string
-    tagsMarkdown += `*   \`${tagPrimary}\`: Specific pgvector and PostgreSQL ${version} version.\n`;
-    tagsMarkdown += `*   \`${shortTagName}\`: Latest build for PostgreSQL ${version}.\n`;
-    tagsMarkdown += `*   \`${fullPgvectorTag}\`: Specific pgvector, PostgreSQL full version (${postgresFullVer}).\n`;
+    tagsMarkdown += `*   \`${tagPrimary}\`: Specific pgvector, pg_search (${pgSearchVer}), and PostgreSQL ${version} version.\n`;
+    tagsMarkdown += `*   \`${shortTagName}\`: Latest build for PostgreSQL ${version} (includes pgvector & pg_search).\n`;
+    tagsMarkdown += `*   \`${fullPgvectorTag}\`: Specific pgvector, pg_search (${pgSearchVer}), PostgreSQL full version (${postgresFullVer}).\n`;
     tagsMarkdown += `*   \`${latestPgTagName}\`: Alias for the latest build for PostgreSQL ${version}.\n`;
   }
 

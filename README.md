@@ -129,12 +129,35 @@ bun run src/build.ts --pg 17 --push
 bun run src/build.ts --pg 17 --platform linux/amd64,linux/arm64
 ```
 
+### Running Tests Locally
+
+This project includes integration tests that verify the functionality of the PostgreSQL instance and the `pgvector` and `pg_search` extensions within the built Docker image.
+
+1.  **Ensure Docker is running.**
+
+2.  **Run the test script:**
+
+    The script `src/run-tests.ts` automates the process:
+    *   Starts a temporary PostgreSQL container using the specified image tag.
+    *   Waits for the database to be ready.
+    *   Runs the tests located in `src/tests`.
+    *   Stops and removes the container afterwards.
+
+    ```bash
+    # Run tests against the default PostgreSQL version (currently 16)
+    bun run src/run-tests.ts
+
+    # Run tests against a specific PostgreSQL version (e.g., 17)
+    # Make sure you have built the corresponding image first (e.g., bun run src/build.ts --pg 17)
+    bun run src/run-tests.ts --pg 17
+    ```
+
 The script will:
 
-- Check for existing images in the registry
-- Download the latest compatible versions of PostgreSQL and pgvector
-- Build multi-architecture images (amd64 and arm64)
-- Push the images to GitHub Container Registry (if authenticated)
+*   Check for existing images in the registry
+*   Download the latest compatible versions of PostgreSQL and pgvector
+*   Build multi-architecture images (amd64 and arm64)
+*   Push the images to GitHub Container Registry (if authenticated)
 
 ## Environment Variables
 
@@ -149,6 +172,7 @@ The images are tagged using the following format:
 - `latest`: Latest successful build (points to the highest supported PostgreSQL version, currently based on `pg17`)
 - `latest-pg{VERSION}`: Latest build for a specific PostgreSQL major version (e.g., `latest-pg17`, `latest-pg16`). This is an alias for the short tag below.
 - `{PGVECTOR_VERSION}-pg{POSTGRES_VERSION}`: Specific pgvector version combined with the PostgreSQL major version (e.g., `0.8.0-pg17`, `0.8.0-pg16`). This tag always points to the latest Bitnami base image revision for that combination.
+- `sha-{HASH}`: A tag based on the SHA256 hash of the specific PostgreSQL, pgvector, and pg_search versions used in a build (e.g., `sha-aabbcc11...`). This tag is used internally by the build process to check if an image with the exact same dependencies already exists in the registry.
 
 More specific tags including the full Bitnami image version are also available (see the "Available tags" section above) but are less commonly used directly.
 
