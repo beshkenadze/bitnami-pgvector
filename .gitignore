@@ -5,3 +5,5 @@ logs.txt
 tests/node_modules
 event.json
 node_modules/
+bin/
+*.bun-build

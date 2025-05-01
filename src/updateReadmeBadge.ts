@@ -1,8 +1,6 @@
 #!/usr/bin/env bun
-import { readFileSync, writeFileSync } from "node:fs";
-import { $ } from "bun";
 import { Command } from "commander";
-import { marked } from "marked";
+import { readFileSync, writeFileSync } from "node:fs";
 import { getVars } from "./getVars";
 
 // Default configuration
@@ -51,7 +49,10 @@ async function updatePgvectorBadge(
 
   // Get variables from getVars for the primary PG version
   const vars = await getVars(primaryVersion.toString());
-  const pgvectorVersion = vars.pgvectorName;
+  // Extract version number (e.g., "0.7.0") from base version (e.g., "pgvector-0.7.0")
+  const baseVersion = vars.pgvectorBaseVersion;
+  const versionParts = baseVersion?.split('-');
+  const pgvectorVersion = versionParts?.[versionParts.length - 1];
 
   if (!pgvectorVersion) {
     console.error(
@@ -183,15 +184,15 @@ async function updateAvailableTagsSection(
  * Main function to update the README.md file
  */
 async function main(): Promise<void> {
-  program.parse();
-  const options = program.opts();
-
   try {
+    program.parse(process.argv); // Parse within try
+    const options = program.opts(); // Get options within try
+
     // Parse command line options
     const primaryVersion = Number.parseInt(options.primary);
     const supportedVersions = options.versions
       .split(",")
-      .map((v) => Number.parseInt(v.trim()));
+      .map((v: string) => Number.parseInt(v.trim()));
     const readmeFile = options.readme;
     const dryRun = options.dryRun;
     const silent = options.silent;
@@ -202,7 +203,7 @@ async function main(): Promise<void> {
       process.exit(1);
     }
 
-    if (supportedVersions.some((v) => Number.isNaN(v))) {
+    if (supportedVersions.some((v: number) => Number.isNaN(v))) {
       console.error(`Error: Invalid supported versions: ${options.versions}`);
       process.exit(1);
     }
@@ -276,8 +277,6 @@ if (import.meta.main) {
 
 // Export for testing
 export {
-  main,
-  updatePgvectorBadge,
-  generateAvailableTagsMarkdown,
-  updateAvailableTagsSection,
+  generateAvailableTagsMarkdown, main, updateAvailableTagsSection, updatePgvectorBadge
 };
+

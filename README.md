@@ -115,10 +115,16 @@ cd bitnami-pgvector
 
 ```bash
 # Build for PostgreSQL 17
-PG_MAJOR_VERSION=17 ./build.sh
+bun run src/build.ts --pg 17
 
 # Build for PostgreSQL 16
-PG_MAJOR_VERSION=16 ./build.sh
+bun run src/build.ts --pg 16
+
+# Add --push to push to the registry
+bun run src/build.ts --pg 17 --push
+
+# Specify platforms (optional)
+bun run src/build.ts --pg 17 --platform linux/amd64,linux/arm64
 ```
 
 The script will:
