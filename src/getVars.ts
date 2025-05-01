@@ -23,12 +23,14 @@ export interface ImageVars {
   imageExists: boolean;
   repoName: string;
   tagLatestPg: string;
+  versionHash: string;
+  versionsHashTag: string;
 }
 
 // Default values
-const DEFAULT_PGVECTOR_VERSION = "0.8.0"; // Base version, will append -pgX
-const DEFAULT_BITNAMI_POSTGRES_VERSION = "17.2.0-debian-12-r1"; // Example, adjust as needed
-const DEFAULT_PG_SEARCH_VERSION = "latest"; // Example stable version
+export const DEFAULT_PGVECTOR_VERSION = "0.8.0"; // Base version, will append -pgX
+export const DEFAULT_BITNAMI_POSTGRES_VERSION = "17.2.0-debian-12-r1"; // Example, adjust as needed
+export const DEFAULT_PG_SEARCH_VERSION = "latest"; // Example stable version
 
 async function fetchLatestBitnamiTag(
   pgMajorVersion: string
@@ -128,27 +130,27 @@ async function fetchLatestPgSearchTag(
   }
 }
 
-async function checkImageExists(fullImageTag: string): Promise<boolean> {
-  console.log(`Checking if image ${fullImageTag} exists in registry...`);
+export async function checkImageExists(tagToCheck: string): Promise<boolean> {
+  console.log(`Checking if image ${tagToCheck} exists in registry...`);
   try {
     // Use Bun Shell to run docker manifest inspect
-    const result = await $`docker manifest inspect ${fullImageTag}`
+    const result = await $`docker manifest inspect ${tagToCheck}`
       .quiet()
       .nothrow();
 
     // Check exit code to determine if the image exists
     if (result.exitCode === 0) {
-      console.log(`Image ${fullImageTag} found in registry.`);
+      console.log(`Image ${tagToCheck} found in registry.`);
       return true;
     }
     console.log(
-      `Image ${fullImageTag} not found in registry (exit code: ${result.exitCode}).`
+      `Image ${tagToCheck} not found in registry (exit code: ${result.exitCode}).`
     );
     return false;
   } catch (error: unknown) {
     // This should rarely happen with nothrow(), but handle it just in case
     console.error(
-      `Error checking image existence for ${fullImageTag}: ${error}`
+      `Error checking image existence for ${tagToCheck}: ${error}`
     );
     return false;
   }
@@ -216,7 +218,48 @@ export async function getVars(
   console.log(`ParadeDB/pg_search Tag: ${pgSearchName}`);
   console.log(`PGVector Builder Tag Used: ${pgvectorBuilderTag}`);
 
-  const imageExists = await checkImageExists(fullImageTag);
+  let versionHash = '';
+  let versionsHashTag = '';
+  let imageExists = false;
+
+  try {
+    console.log(">>> Starting hash calculation...");
+    // --- Start Hash Calculation ---
+    const versionString = `pg:${pgMajorVersion}-pgvector:${pgvectorBaseVersion}-pgsearch:${pgSearchName}`;
+    console.log(">>> HASH: Got versionString");
+
+    // Use Bun.CryptoHasher instead of crypto.subtle.digest
+    const hasher = new Bun.CryptoHasher("sha256");
+    hasher.update(versionString);
+    const hashArray = hasher.digest(); // Returns Uint8Array by default
+    console.log(">>> HASH: Got hash Uint8Array from Bun.CryptoHasher"); // UPDATED LOG
+
+    // No need to convert from ArrayBuffer, digest() returns Uint8Array directly
+    // const hashArray = Array.from(new Uint8Array(hashBuffer));
+    console.log(">>> HASH: Got hashArray (already Uint8Array)"); // UPDATED LOG
+    versionHash = Buffer.from(hashArray).toString('hex'); // Convert Uint8Array to hex string
+    console.log(">>> HASH: Got versionHash");
+    console.log(`Version Combination Hash: ${versionHash}`);
+    // Construct the hash tag
+    console.log(">>> HASH: Getting repoRoot...");
+    const repoRoot = (await $`git rev-parse --show-toplevel`.text()).trim();
+    console.log(">>> HASH: Got repoRoot");
+    const repoName = Bun.env.REPO_NAME ?? repoRoot.split("/").pop() ?? "unknown-repo";
+    console.log(">>> HASH: Got repoName");
+    versionsHashTag = `${registry}/${repoName}:sha-${versionHash}`;
+    console.log(">>> HASH: Got versionsHashTag");
+    console.log(`Versions Hash Tag for Existence Check: ${versionsHashTag}`);
+    // --- End Hash Calculation ---
+
+    console.log(">>> Starting image existence check...");
+    imageExists = await checkImageExists(versionsHashTag);
+    console.log(">>> Finished image existence check.");
+
+  } catch (error) {
+    console.error(">>> ERROR during hash calculation or image check:", error);
+    // Re-throw the error to ensure it's handled by the caller
+    throw new Error(`Failed during hash/existence check: ${error instanceof Error ? error.message : error}`);
+  }
 
   const vars: ImageVars = {
     bitnamiName,
@@ -229,6 +272,8 @@ export async function getVars(
     imageExists,
     repoName,
     tagLatestPg,
+    versionHash,
+    versionsHashTag,
   };
 
   // Output for GitHub Actions or export locally
@@ -253,6 +298,10 @@ export async function getVars(
 `);
     writer.write(`TAG_LATEST_PG=${vars.tagLatestPg}
 `);
+    writer.write(`VERSION_HASH=${vars.versionHash}
+`);
+    writer.write(`VERSIONS_HASH_TAG=${vars.versionsHashTag}
+`);
     await writer.flush();
     console.log("Variables written to GITHUB_OUTPUT.");
   } else if (!suppressExports) {
@@ -268,6 +317,8 @@ export async function getVars(
     console.log(`export TAG_SHORT='${vars.tagShort}'`);
     console.log(`export TAG_WITH_FULL_POSTGRES_VERSION='${vars.tagWithFullPostgresVersion}'`);
     console.log(`export IMAGE_EXISTS='${vars.imageExists}'`); // Export image existence status
+    console.log(`export VERSION_HASH='${vars.versionHash}'`);
+    console.log(`export VERSIONS_HASH_TAG='${vars.versionsHashTag}'`);
     const repoRoot = (await $`git rev-parse --show-toplevel`.text()).trim();
     const repoName = Bun.env.REPO_NAME ?? repoRoot.split("/").pop() ?? "unknown-repo";
     console.log(`export REPO_NAME='${repoName}'`);
@@ -277,27 +328,23 @@ export async function getVars(
 }
 
 // Allow running the script directly
-// bun run scripts/getVars.ts
-// PG_MAJOR_VERSION=16 bun run scripts/getVars.ts
-if (import.meta.main) {
+if (require.main === module) {
   const program = new Command();
-  program
-    .name("get-vars")
-    .description("Get variables for building the pgvector image")
-    .option(
-      "-p, --pg-version <version>",
-      "Major PostgreSQL version (e.g., 16, 17)"
-    )
-    .parse(process.argv);
+  program.option("-v, --version", "Show version");
+  program.option("-h, --help", "Show help");
+  program.parse();
 
-  const options = program.opts();
-  const pgMajorVersionArg = options.pgVersion; // Use parsed option
+  if (program.opts().version) {
+    console.log("Version 1.0.0");
+    process.exit(0);
+  }
 
-  // Get PG major version from the first command line argument
-  // const pgMajorVersionArg = process.argv[2]; // Removed original argument parsing
+  if (program.opts().help) {
+    program.help();
+    process.exit(0);
+  }
 
-  getVars(pgMajorVersionArg).catch((err) => { // Pass the parsed version or undefined
-    console.error("Script failed:", err);
-    process.exit(1);
+  getVars().then(vars => {
+    console.log("Variables determined (local run):", vars);
   });
 }

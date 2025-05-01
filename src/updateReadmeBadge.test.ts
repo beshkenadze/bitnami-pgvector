@@ -1,16 +1,16 @@
 import {
-    type Mock,
-    afterAll,
-    beforeAll,
-    beforeEach,
-    describe,
-    expect,
-    mock,
-    spyOn,
-    test
+  type Mock,
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test
 } from "bun:test";
 import * as fs from "node:fs";
-import * as path from "path";
+import * as path from "node:path";
 import * as getVarsModule from "./getVars";
 
 // Create sample content for the README file
@@ -37,6 +37,8 @@ const mockVarsResponse: getVarsModule.ImageVars = {
   pgvectorBuilderTag: "pgvector-0.8.0-pg17",
   repoName: "bitnami-pgvector",
   imageExists: false,
+  versionHash: "mockHash17",
+  versionsHashTag: "mockVersionsHash17",
 };
 
 // Mock fs module functions
@@ -71,14 +73,14 @@ beforeAll(() => {
 
   // Mock fs functions directly with spyOn
   spyOn(fs, "readFileSync").mockImplementation(
-    ((path: fs.PathOrFileDescriptor, options?: any): string | Buffer => {
-      if (typeof path === "string") {
-        // Return string for simplicity in tests, assuming utf-8 is implied
+    ((path: fs.PathOrFileDescriptor, options?: BufferEncoding | { encoding?: BufferEncoding | null; flag?: string; } | null | undefined) => {
+      // If encoding is specified and not null, return a string
+      if (options && ((typeof options === 'string') || (typeof options === 'object' && options.encoding))) {
         return sampleReadmeContent;
       }
-      // Fallback for non-string paths
+      // Otherwise (or if options are null/undefined), return a Buffer
       return Buffer.from(sampleReadmeContent);
-    }) as any // Cast to any to simplify overload issues
+    }) as typeof fs.readFileSync // Cast to handle overloads
   );
 
   // Keep writeFileSync mock separate as we need to inspect its calls
@@ -107,6 +109,8 @@ beforeAll(() => {
           pgvectorBuilderTag: "pgvector-0.8.0-pg16",
           repoName: "bitnami-pgvector",
           imageExists: false,
+          versionHash: "mockHash16",
+          versionsHashTag: "mockVersionsHash16",
         };
       }
       // Return the default mock response (already typed as ImageVars)
@@ -146,7 +150,7 @@ beforeEach(() => {
 
 // Import the module under test after setting up mocks
 import {
-    main
+  main
 } from "./updateReadmeBadge";
 
 // Test suite
@@ -278,7 +282,7 @@ describe("updateReadmeBadge", () => {
     try {
       await main();
       throw new Error("Expected main() to throw an error");
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Verify that errorSpy was called
       expect(errorSpy).toHaveBeenCalled();
 
@@ -294,7 +298,11 @@ describe("updateReadmeBadge", () => {
       }
 
       // Verify process.exit was called via the thrown error
-      expect(error.message).toContain("Process exited with code 1");
+      if (error instanceof Error) {
+          expect(error.message).toContain("Process exited with code 1");
+      } else {
+          throw new Error("Unexpected error type");
+      }
     }
     readSpy.mockRestore(); // Restore original mock
   });
@@ -346,8 +354,12 @@ describe("updateReadmeBadge", () => {
     try {
       await main();
       throw new Error("Main should have exited for invalid primary version");
-    } catch (error: any) {
-      expect(error.message).toContain("Process exited with code 1");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        expect(error.message).toContain("Process exited with code 1");
+      } else {
+        throw new Error("Unexpected error type");
+      }
     }
 
     // Test case 2: Invalid supported versions
@@ -355,8 +367,12 @@ describe("updateReadmeBadge", () => {
     try {
       await main();
       throw new Error("Main should have exited for invalid supported versions");
-    } catch (error: any) {
-      expect(error.message).toContain("Process exited with code 1");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        expect(error.message).toContain("Process exited with code 1");
+      } else {
+        throw new Error("Unexpected error type");
+      }
     }
   });
 });

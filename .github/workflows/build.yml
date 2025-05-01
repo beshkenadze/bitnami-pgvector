@@ -184,3 +184,14 @@ jobs:
           PGPASSWORD: rootpassword
           PGDATABASE: testdb
         run: bun run test:vector
+
+      - name: Run pg_search extension test
+        env:
+          # Use standard PostgreSQL environment variables for connection within the test script
+          PGHOST: postgres
+          PGPORT: 5432
+          # Creating extensions usually requires superuser
+          PGUSER: postgres
+          PGPASSWORD: rootpassword
+          PGDATABASE: testdb
+        run: bun run test:search

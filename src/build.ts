@@ -1,10 +1,9 @@
 #!/usr/bin/env bun
 import { $ as defaultShellExecutor } from "bun";
 import { Command } from "commander";
-import { getVars } from "./getVars"; // Assuming getVars can be imported
+import { getVars, type ImageVars } from "./getVars"; // Assuming getVars can be imported
 
-const ROOT_DIR = process.cwd();
-const DOCKER_FILE = `${ROOT_DIR}/Dockerfile`;
+// No longer needed, file path is now specified directly
 
 interface BuildOptions {
   push?: boolean;
@@ -12,7 +11,11 @@ interface BuildOptions {
   pgMajorVersion: string;
 }
 
-async function runBuild(options: BuildOptions, shellExecutor: any = defaultShellExecutor, logger: (message?: any, ...optionalParams: any[]) => void = console.log) {
+async function runBuild(
+  options: BuildOptions, 
+  shellExecutor: typeof defaultShellExecutor = defaultShellExecutor, 
+  logger: (message?: unknown, ...optionalParams: unknown[]) => void = console.log
+) {
   logger(`Starting build for PG ${options.pgMajorVersion}...`);
 
   if (options.push) {
@@ -26,10 +29,12 @@ async function runBuild(options: BuildOptions, shellExecutor: any = defaultShell
 
   // --- Get Variables ---
   logger("Fetching build variables...");
-  let buildVars;
+  let buildVars: ImageVars | undefined;
   try {
+    logger(">>> ABOUT TO CALL getVars");
     buildVars = await getVars(options.pgMajorVersion, { suppressExports: true });
-   
+    logger(">>> RETURNED FROM getVars");
+
     if (!buildVars) {
         throw new Error("Build variables could not be determined.");
     }
@@ -38,12 +43,14 @@ async function runBuild(options: BuildOptions, shellExecutor: any = defaultShell
     process.exit(1);
   }
 
-  // Check if image exists
+  // Check if image exists using the versionsHashTag
   if (buildVars.imageExists && options.push) {
-    logger("Image already exists in registry (detected by getVars). Skipping build and push.");
+    logger(`Image with hash tag ${buildVars.versionsHashTag} already exists in registry. Skipping build and push.`);
     return; // Exit successfully
-  } else if (buildVars.imageExists) {
-    logger("Image already exists locally or in registry (detected by getVars), but continuing with local build as --push was not specified.");
+  } 
+  
+  if (buildVars.imageExists) {
+    logger(`Image with hash tag ${buildVars.versionsHashTag} exists, but continuing with local build as --push was not specified.`);
   }
 
   // --- Docker Build ---
@@ -70,19 +77,20 @@ async function runBuild(options: BuildOptions, shellExecutor: any = defaultShell
   const tags = [
     `--tag '${buildVars.tagShort}'`, // Use tagShort from getVars
     `--tag '${buildVars.tagLatestPg}'`, // Use tagLatestPg from getVars
+    `--tag '${buildVars.versionsHashTag}'`, // Add the versionsHashTag
   ];
 
   const platformArg = options.platform ? `--platform ${options.platform}` : "";
   const pushArg = options.push ? "--push" : "";
 
   // Constructing command string for logging (easier to read)
-  const commandStringLog = `docker buildx build ${platformArg} ${buildArgs.join(" ")} ${tags.join(" ")} ${pushArg} .`;
+  // Removed this as it's reconstructed later with --load included
+  // const commandStringLog = `docker buildx build ${platformArg} ${buildArgsCmd.join(" ")} ${tagsCmd.join(" ")} ${pushCmd.join(" ")} .`;
 
-  logger("Running command:");
-  logger(commandStringLog); // Log the command string
+  // logger("Running command:");
+  // logger(commandStringLog); // Log the command string
 
   // Construct parts of the command
-  const baseCmd = ["docker", "buildx", "build"];
   const platformCmd = options.platform ? ["--platform", options.platform] : [];
   const buildArgsCmd = [
     "--build-arg", `BITNAMI_TAG=${buildVars.bitnamiName}`,
@@ -93,28 +101,36 @@ async function runBuild(options: BuildOptions, shellExecutor: any = defaultShell
   const tagsCmd = [
     "--tag", buildVars.tagShort,
     "--tag", buildVars.tagLatestPg, // Use tagLatestPg from getVars
+    "--tag", buildVars.versionsHashTag, // Add the versionsHashTag
   ];
   const pushCmd = options.push ? ["--push"] : [];
+  const loadCmd = options.push ? [] : ["--load"]; // Add --load if not pushing
   const context = ["."];
   const fileArg = ["-f", "Dockerfile"]; // Specify Dockerfile path
 
   // Construct the command string for the tagged template
-  const commandString = `docker buildx build ${platformCmd.join(" ")} ${buildArgsCmd.join(" ")} ${tagsCmd.join(" ")} ${pushCmd.join(" ")} ${fileArg.join(" ")} ${context.join(" ")}`.trim();
+  // Removed pre-constructed commandString as it caused issues
+  // const commandString = `docker buildx build ...`.trim();
 
   // Log the command string for verification
-  logger("Executing command string:", commandString); 
+  // Reconstruct for logging purposes only
+  const commandStringLog = `docker buildx build ${platformCmd.join(" ")} ${buildArgsCmd.join(" ")} ${tagsCmd.join(" ")} ${pushCmd.join(" ")} ${loadCmd.join(" ")} ${fileArg.join(" ")} ${context.join(" ")}`.trim();
+  logger("Executing command string (for log):");
+  logger(commandStringLog);
 
-  // Use tagged template literal syntax
-  await shellExecutor`${commandString}`;
+  // Use tagged template literal syntax, building the command parts directly
+  await shellExecutor`docker buildx build ${platformCmd} ${buildArgsCmd} ${tagsCmd} ${pushCmd} ${loadCmd} ${fileArg} ${context}`;
 
   logger("Build completed successfully!");
   const latestTag = buildVars.tagLatestPg; // Use tagLatestPg from getVars
   if (options.push) {
     logger(`Image tagged and pushed as: ${buildVars.tagShort}`);
     logger(`Image also tagged and pushed as: ${latestTag}`);
+    logger(`Image also tagged and pushed with hash tag: ${buildVars.versionsHashTag}`);
   } else {
     logger(`Image tagged locally as: ${buildVars.tagShort}`);
     logger(`Image also tagged locally as: ${latestTag}`);
+    logger(`Image also tagged locally with hash tag: ${buildVars.versionsHashTag}`);
   }
 }
 
@@ -129,8 +145,7 @@ if (import.meta.main) {
     .option("--push", "Push the image to the registry after building")
     .option("--platform <platforms>", "Set target platforms for build (e.g., linux/amd64,linux/arm64)")
     .action(async (options) => {
-        // Basic validation: Ensure pg is a number-like string
-        if (isNaN(parseInt(options.pg, 10))) {
+        if (Number.isNaN(Number.parseInt(options.pg, 10))) {
             console.error(`Error: Invalid PostgreSQL version provided: '${options.pg}'. Must be a number.`);
             process.exit(1);
         }

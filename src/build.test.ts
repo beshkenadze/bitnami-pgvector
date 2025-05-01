@@ -25,7 +25,7 @@ mock.module("./getVars", () => ({
 
 // Define the mock shell executor function separately
 const mockShellExecutor = mock(async (...args: any[]) => {
-    let command: string = '';
+    let command = '';
     // Check if called as a template literal tag
     if (Array.isArray(args[0]) && 'raw' in args[0]) {
         const pieces = args[0] as unknown as TemplateStringsArray;
@@ -180,7 +180,7 @@ describe("Build Script (build.ts)", () => {
 
        // Check console output
        const skipLogFound = consoleLogMock.mock.calls.some(call =>
-           String(call?.[0]).includes("Image already exists in registry (detected by getVars). Skipping build and push.")
+           String(call?.[0]).startsWith("Image with hash tag ") && String(call?.[0]).endsWith(" already exists in registry. Skipping build and push.")
        );
        expect(skipLogFound).toBe(true);
 
@@ -199,7 +199,10 @@ describe("Build Script (build.ts)", () => {
 
     // Check console log for the warning
     const logs = consoleLogMock.mock.calls.map(call => call[0]);
-    expect(logs).toEqual(expect.arrayContaining([expect.stringContaining("Image already exists locally or in registry (detected by getVars), but continuing with local build as --push was not specified.")]));
+    const warningLogFound = consoleLogMock.mock.calls.some(call =>
+      String(call?.[0]).startsWith("Image with hash tag ") && String(call?.[0]).endsWith(" exists, but continuing with local build as --push was not specified.")
+    );
+    expect(warningLogFound).toBe(true);
 
     // Ensure docker build WAS called
     const buildCommandCall = mockShellExecutor.mock.calls.find(call => {
