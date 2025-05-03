@@ -139,10 +139,11 @@ This project includes integration tests that verify the functionality of the Pos
 2.  **Run the test script:**
 
     The script `src/run-tests.ts` automates the process:
-    *   Starts a temporary PostgreSQL container using the specified image tag.
-    *   Waits for the database to be ready.
-    *   Runs the tests located in `src/tests`.
-    *   Stops and removes the container afterwards.
+
+    - Starts a temporary PostgreSQL container using the specified image tag.
+    - Waits for the database to be ready.
+    - Runs the tests located in `src/tests`.
+    - Stops and removes the container afterwards.
 
     ```bash
     # Run tests against the default PostgreSQL version (currently 16)
@@ -155,10 +156,10 @@ This project includes integration tests that verify the functionality of the Pos
 
 The script will:
 
-*   Check for existing images in the registry
-*   Download the latest compatible versions of PostgreSQL and pgvector
-*   Build multi-architecture images (amd64 and arm64)
-*   Push the images to GitHub Container Registry (if authenticated)
+- Check for existing images in the registry
+- Download the latest compatible versions of PostgreSQL and pgvector
+- Build multi-architecture images (amd64 and arm64)
+- Push the images to GitHub Container Registry (if authenticated)
 
 ## Environment Variables
 

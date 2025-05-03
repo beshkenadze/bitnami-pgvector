@@ -11,7 +11,7 @@ describe("ShieldsBadgeManager", () => {
 
 [![GitHub Workflow Status](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/build.yml/badge.svg)](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/build.yml) 
 [![pgvector](https://img.shields.io/badge/pgvector-0.8.0-green.svg?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector/releases) 
-[![pg_search](https://img.shields.io/badge/pg_search-0.15.18--pg17-blue.svg?logo=postgresql&logoColor=white)](https://github.com/paradedb/paradedb/tree/dev/pg_search) 
+[![pg_search](https://img.shields.io/badge/pg_search-0.15.18-pg17-blue.svg?logo=postgresql&logoColor=white)](https://github.com/paradedb/paradedb/tree/dev/pg_search) 
 [![PostgreSQL Versions](https://img.shields.io/badge/PostgreSQL-16%20%7C%2017-blue.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/) 
 [![GHCR latest](https://img.shields.io/badge/GHCR-latest-blue.svg)](https://github.com/beshkenadze/bitnami-pgvector/pkgs/container/bitnami-pgvector) 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -51,15 +51,15 @@ Some other text here.
       );
     });
 
-    it("should correctly parse the pg_search badge with escaped message", () => {
+    it("should correctly parse the pg_search badge", () => {
       const pgSearchBadge = badges.find((b) => b.label === "pg_search");
       expect(pgSearchBadge).toBeDefined(); // Ensure the badge exists
-      expect(pgSearchBadge?.message).toBe("0.15.18--pg17"); // Verify the escaped message
+      expect(pgSearchBadge?.message).toBe("0.15.18-pg17"); // Verify the standard message
       expect(pgSearchBadge?.color).toBe("blue");
       expect(pgSearchBadge?.logo).toBe("postgresql");
       expect(pgSearchBadge?.logoColor).toBe("white");
       expect(pgSearchBadge?.url).toBe(
-        "https://img.shields.io/badge/pg_search-0.15.18--pg17-blue.svg?logo=postgresql&logoColor=white"
+        "https://img.shields.io/badge/pg_search-0.15.18-pg17-blue.svg?logo=postgresql&logoColor=white"
       );
       expect(pgSearchBadge?.linkUrl).toBe(
         "https://github.com/paradedb/paradedb/tree/dev/pg_search"

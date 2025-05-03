@@ -7,3 +7,5 @@ event.json
 node_modules/
 bin/
 *.bun-build
+
+**/.claude/settings.local.json

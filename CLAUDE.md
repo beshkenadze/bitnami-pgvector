@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Build**: `bun run build` (runs getVars and updateReadme builds)
 - **Test**: `bun test` (all tests) or `bun test src/file.test.ts` (single test)
-- **Specific Tests**: `bun run test:pg`, `bun run test:vector`, `bun run test:search`
+- **Specific Tests**: `bun run test:e2e` (all E2E tests), `bun test src/tests/pg.e2e.test.ts` (single E2E test)
 - **Lint**: `bun run lint` (check) or `bun run lint:fix` (auto-fix issues)
 - **Format**: `bun run format` (format with Biome)
 
@@ -23,5 +23,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Important Notes
 
 - This project uses Bun for runtime, builds, and testing
-- Main scripts include docker builds, updating README badges, and more
-- Always run linting before committing changes
+- Main scripts include docker builds, updating README badges via shields.io
+- The project handles PostgreSQL with pgvector extension functionality
+- Always run linting before committing changes with `bun run lint && bun run format`

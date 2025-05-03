@@ -12,7 +12,7 @@
     "update-readme-all": "bun run src/updateReadmeBadge.ts",
     "docker-build": "bun run src/build.ts",
     "get-vars": "bun run src/getVars.ts",
-    "test": "bun test",
+    "test": "bun test src/**/*.test.ts",
     "test:ts": "bun test src/",
     "test:e2e": "bun test src/tests",
     "test:postgres": "./src/tests/run_tests.sh",
