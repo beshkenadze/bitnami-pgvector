@@ -48,11 +48,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up system packages
-        run: |
-          apt-get update
-          apt-get install -y curl unzip git ca-certificates
-
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
 
