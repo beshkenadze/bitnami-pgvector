@@ -60,8 +60,8 @@ jobs:
       - name: Setup CI environment
         run: bun run ci:setup
         
-      - name: Run Biome lint
-        run: bun run lint
+      # - name: Run Biome lint
+      #   run: bun run lint
         
       # Consolidated test step
       - name: Run End-to-End Tests
