@@ -18,7 +18,7 @@ jobs:
       # Label used to access the service container
       postgres:
         # Docker Hub image using matrix variable
-        image: ghcr.io/beshkenadze/bitnami-pgvector:pg${{ matrix.pg_version }}
+        image: ghcr.io/beshkenadze/bitnami-pgvector-search:pg${{ matrix.pg_version }}
         # Provide the password for postgres
         # Expose container port 5432, let Docker assign a random host port
         ports:
