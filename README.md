@@ -1,4 +1,4 @@
-[![GitHub Workflow Status](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/build.yml/badge.svg)](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/build.yml) [![Running Tests](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/test.yml/badge.svg)](https://github.com/beshkenadze/bitnami-pgvector/actions/workflows/test.yml) [![pgvector Version](https://img.shields.io/badge/pgvector-0.8.0-green.svg)](https://github.com/pgvector/pgvector/releases) [![PostgreSQL Versions](https://img.shields.io/badge/PostgreSQL-16%20%7C%2017-blue.svg)](https://www.postgresql.org/) [![GHCR latest](https://img.shields.io/badge/GHCR-latest-blue)](https://github.com/beshkenadze/bitnami-pgvector/pkgs/container/bitnami-pgvector) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub Workflow Status](https://github.com/beshkenadze/bitnami-pgvector-search/actions/workflows/build.yml/badge.svg)](https://github.com/beshkenadze/bitnami-pgvector-search/actions/workflows/build.yml) [![Running Tests](https://github.com/beshkenadze/bitnami-pgvector-search/actions/workflows/test.yml/badge.svg)](https://github.com/beshkenadze/bitnami-pgvector-search/actions/workflows/test.yml) [![pgvector Version](https://img.shields.io/badge/pgvector-0.8.0-green.svg)](https://github.com/pgvector/pgvector/releases) [![PostgreSQL Versions](https://img.shields.io/badge/PostgreSQL-16%20%7C%2017-blue.svg)](https://www.postgresql.org/) [![GHCR latest](https://img.shields.io/badge/GHCR-latest-blue)](https://github.com/beshkenadze/bitnami-pgvector-search/pkgs/container/bitnami-pgvector) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 # Bitnami PostgreSQL with pgvector Extension
 
@@ -21,16 +21,16 @@ For specific architectures:
 
 ```bash
 # For linux/amd64
-docker pull ghcr.io/beshkenadze/bitnami-pgvector:latest@sha256:1065402f43c9384a0b34a64d6cab0839f9b332b5cb4d75c97161fb12ad25fc92
+docker pull ghcr.io/beshkenadze/bitnami-pgvector-search:latest@sha256:1065402f43c9384a0b34a64d6cab0839f9b332b5cb4d75c97161fb12ad25fc92
 
 # For linux/arm64
-docker pull ghcr.io/beshkenadze/bitnami-pgvector:latest@sha256:4df7853e68c428460c1b529f41e9b5b7dbc7052925c8077980c92c27343dd84f
+docker pull ghcr.io/beshkenadze/bitnami-pgvector-search:latest@sha256:4df7853e68c428460c1b529f41e9b5b7dbc7052925c8077980c92c27343dd84f
 ```
 
 For multi-arch support (automatically selects the right architecture):
 
 ```bash
-docker pull ghcr.io/beshkenadze/bitnami-pgvector:latest
+docker pull ghcr.io/beshkenadze/bitnami-pgvector-search:latest
 ```
 
 ## Available tags:
