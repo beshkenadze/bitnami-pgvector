@@ -62,25 +62,13 @@ jobs:
         
       - name: Run Biome lint
         run: bun run lint
-      - name: Run PostgreSQL connection test
+        
+      # Consolidated test step
+      - name: Run End-to-End Tests
         env:
-          # Use standard PostgreSQL environment variables for connection within the test script
           PGHOST: postgres
-          # Use the dynamically assigned host port
           PGPORT: 5432
-          # To use vector extension, we need to use root user
-          PGUSER: testuser
-          PGPASSWORD: testpassword
-          PGDATABASE: testdb
-        run: bun run test:pg
-      - name: Run pgvector extension test
-        env:
-          # Use standard PostgreSQL environment variables for connection within the test script
-          PGHOST: postgres
-          # Use the dynamically assigned host port
-          PGPORT: 5432
-          # To use vector extension, we need to use root user
-          PGUSER: postgres
+          PGUSER: postgres # Use the root user to mitigate permission issues with extensions
           PGPASSWORD: rootpassword
           PGDATABASE: testdb
-        run: bun run test:vector
+        run: bun run test:e2e --bail # Use the consolidated script
